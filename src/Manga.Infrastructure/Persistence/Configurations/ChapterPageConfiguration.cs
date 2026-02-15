@@ -15,14 +15,18 @@ public class ChapterPageConfiguration : IEntityTypeConfiguration<ChapterPage>
         builder.Property(cp => cp.PageNumber)
             .IsRequired();
 
-        builder.Property(cp => cp.ImageUrl)
-            .HasMaxLength(500)
+        builder.Property(cp => cp.ImageId)
             .IsRequired();
 
         builder.HasOne(cp => cp.Chapter)
             .WithMany(c => c.ChapterPages)
             .HasForeignKey(cp => cp.ChapterId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(cp => cp.Image)
+            .WithMany()
+            .HasForeignKey(cp => cp.ImageId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(cp => new { cp.ChapterId, cp.PageNumber }).IsUnique();
     }

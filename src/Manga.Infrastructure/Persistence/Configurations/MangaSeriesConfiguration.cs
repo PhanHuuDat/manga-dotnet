@@ -17,25 +17,15 @@ public class MangaSeriesConfiguration : IEntityTypeConfiguration<MangaSeries>
             .HasMaxLength(300)
             .IsRequired();
 
-        builder.Property(m => m.Slug)
-            .HasMaxLength(300)
+        builder.Property(m => m.SeriesNumber)
+            .ValueGeneratedOnAdd()
             .IsRequired();
 
         builder.Property(m => m.Synopsis)
             .HasColumnType("text");
 
-        builder.Property(m => m.CoverUrl)
-            .HasMaxLength(500);
-
-        builder.Property(m => m.BannerUrl)
-            .HasMaxLength(500);
-
-        builder.Property(m => m.Author)
-            .HasMaxLength(200)
+        builder.Property(m => m.AuthorId)
             .IsRequired();
-
-        builder.Property(m => m.Artist)
-            .HasMaxLength(200);
 
         builder.Property(m => m.Status)
             .HasDefaultValue(SeriesStatus.Ongoing);
@@ -56,9 +46,32 @@ public class MangaSeriesConfiguration : IEntityTypeConfiguration<MangaSeries>
         builder.Property(m => m.LatestChapterNumber)
             .HasDefaultValue(0);
 
-        builder.HasIndex(m => m.Slug).IsUnique();
+        // FK relationships
+        builder.HasOne(m => m.Cover)
+            .WithMany()
+            .HasForeignKey(m => m.CoverId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(m => m.Banner)
+            .WithMany()
+            .HasForeignKey(m => m.BannerId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(m => m.Author)
+            .WithMany(p => p.AuthoredSeries)
+            .HasForeignKey(m => m.AuthorId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(m => m.Artist)
+            .WithMany(p => p.IllustratedSeries)
+            .HasForeignKey(m => m.ArtistId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(m => m.SeriesNumber).IsUnique();
         builder.HasIndex(m => m.Status);
         builder.HasIndex(m => m.Views).IsDescending();
         builder.HasIndex(m => m.CreatedAt).IsDescending();
+        builder.HasIndex(m => m.AuthorId);
+        builder.HasIndex(m => m.ArtistId);
     }
 }

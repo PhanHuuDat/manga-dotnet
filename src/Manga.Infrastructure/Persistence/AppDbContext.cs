@@ -20,6 +20,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<CommentReaction> CommentReactions => Set<CommentReaction>();
     public DbSet<Bookmark> Bookmarks => Set<Bookmark>();
     public DbSet<ReadingHistory> ReadingHistories => Set<ReadingHistory>();
+    public DbSet<Person> Persons => Set<Person>();
+    public DbSet<Attachment> Attachments => Set<Attachment>();
+    public DbSet<ViewStat> ViewStats => Set<ViewStat>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

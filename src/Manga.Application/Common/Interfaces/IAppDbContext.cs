@@ -16,6 +16,9 @@ public interface IAppDbContext
     DbSet<CommentReaction> CommentReactions { get; }
     DbSet<Bookmark> Bookmarks { get; }
     DbSet<ReadingHistory> ReadingHistories { get; }
+    DbSet<Person> Persons { get; }
+    DbSet<Attachment> Attachments { get; }
+    DbSet<ViewStat> ViewStats { get; }
 
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

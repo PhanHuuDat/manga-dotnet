@@ -27,8 +27,10 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.DisplayName)
             .HasMaxLength(100);
 
-        builder.Property(u => u.AvatarUrl)
-            .HasMaxLength(500);
+        builder.HasOne(u => u.Avatar)
+            .WithMany()
+            .HasForeignKey(u => u.AvatarId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         builder.Property(u => u.Level)
             .HasDefaultValue(1);
