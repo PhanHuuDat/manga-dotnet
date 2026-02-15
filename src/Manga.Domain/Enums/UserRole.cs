@@ -4,5 +4,6 @@ public enum UserRole
 {
     Reader = 0,
     Moderator = 1,
-    Admin = 2
+    Admin = 2,
+    Uploader = 3
 }

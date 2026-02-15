@@ -19,6 +19,7 @@ public interface IAppDbContext
     DbSet<Person> Persons { get; }
     DbSet<Attachment> Attachments { get; }
     DbSet<ViewStat> ViewStats { get; }
+    DbSet<UserRoleMapping> UserRoleMappings { get; }
 
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

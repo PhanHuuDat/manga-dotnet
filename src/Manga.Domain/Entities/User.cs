@@ -29,11 +29,9 @@ public class User : AuditableEntity
     /// <summary>Whether the user is currently active on the platform.</summary>
     public bool IsOnline { get; set; }
 
-    /// <summary>Authorization role: Reader, Moderator, or Admin.</summary>
-    public UserRole Role { get; set; } = UserRole.Reader;
-
     // Navigation properties
     public Attachment? Avatar { get; set; }
+    public ICollection<UserRoleMapping> UserRoles { get; set; } = [];
     public ICollection<Comment> Comments { get; set; } = [];
     public ICollection<CommentReaction> CommentReactions { get; set; } = [];
     public ICollection<Bookmark> Bookmarks { get; set; } = [];

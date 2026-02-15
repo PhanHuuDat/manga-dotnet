@@ -23,6 +23,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Person> Persons => Set<Person>();
     public DbSet<Attachment> Attachments => Set<Attachment>();
     public DbSet<ViewStat> ViewStats => Set<ViewStat>();
+    public DbSet<UserRoleMapping> UserRoleMappings => Set<UserRoleMapping>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
