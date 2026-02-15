@@ -1,6 +1,0 @@
-@manga_dotnet_HostAddress = http://localhost:5262
-
-GET {{manga_dotnet_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

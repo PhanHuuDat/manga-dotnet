@@ -1,3 +1,20 @@
 <Solution>
-  <Project Path="manga-dotnet.csproj" />
+  <Folder Name="/src/">
+    <Project Path="src/Manga.Domain/Manga.Domain.csproj" />
+    <Project Path="src/Manga.Application/Manga.Application.csproj" />
+    <Project Path="src/Manga.Infrastructure/Manga.Infrastructure.csproj" />
+    <Project Path="src/Manga.Api/Manga.Api.csproj" />
+  </Folder>
+  <Folder Name="/docs/">
+    <File Path="docs/project-overview-pdr.md" />
+    <File Path="docs/codebase-summary.md" />
+    <File Path="docs/code-standards.md" />
+    <File Path="docs/system-architecture.md" />
+    <File Path="docs/project-roadmap.md" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Manga.Domain.Tests/Manga.Domain.Tests.csproj" />
+    <Project Path="tests/Manga.Application.Tests/Manga.Application.Tests.csproj" />
+    <Project Path="tests/Manga.Api.Tests/Manga.Api.Tests.csproj" />
+  </Folder>
 </Solution>
