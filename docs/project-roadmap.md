@@ -4,8 +4,8 @@
 
 Manga-dotnet development roadmap spanning 6 phases over ~3-4 months. Each phase builds on the previous; dependencies tracked.
 
-**Current Phase**: Foundation (100% Complete)
-**Next Phase**: Domain Modeling (Estimated start: Week 2)
+**Current Phase**: Domain Modeling (70% Complete)
+**Previous Phase**: Foundation (100% Complete - Feb 13)
 
 ---
 
@@ -40,11 +40,11 @@ Manga-dotnet development roadmap spanning 6 phases over ~3-4 months. Each phase 
 
 ---
 
-### Phase 2: Domain Modeling (In Planning)
+### Phase 2: Domain Modeling (In Progress)
 
-**Status**: Pending
+**Status**: 70% Complete
 **Duration**: 2-3 sprints (6-9 weeks)
-**Estimated Start**: 2026-02-20
+**Actual Start**: 2026-02-13
 **Estimated Completion**: 2026-04-10
 
 **Goals**:
@@ -53,6 +53,34 @@ Manga-dotnet development roadmap spanning 6 phases over ~3-4 months. Each phase 
 - Create domain events
 - Establish repository interfaces
 - Achieve 80%+ test coverage for domain logic
+
+**Completed Entities** (16 total):
+1. **MangaSeries** — Core manga catalog entity (title, author, chapters, status, badge, rating)
+2. **Chapter** — Chapters of manga (chapter number, views, published date)
+3. **ChapterPage** — Individual pages within chapters (image storage)
+4. **AlternativeTitle** — Manga titles in different languages
+5. **Genre** — Manga genres (name, slug, description)
+6. **MangaGenre** — Join table linking manga to genres
+7. **Comment** — User comments on series/chapters/pages
+8. **CommentReaction** — Reactions to comments (like/dislike)
+9. **Bookmark** — User bookmarks of series/chapters
+10. **ReadingHistory** — User reading progress tracking
+11. **User** — Platform users (username, email, password hash, roles)
+12. **Person** — Authors and artists (name, biography, image)
+13. **Attachment** — File storage (covers, banners, avatars, chapter pages)
+14. **ViewStat** — Daily view aggregation (anti-bloat for analytics)
+15. **MangaBadge** — Hot/Top/New badges on manga
+16. **UserRole** — User permission levels
+
+**Completed Enums** (6 total):
+- `SeriesStatus` (Ongoing=0, Completed=1, Hiatus=2)
+- `MangaBadge` (Hot=0, Top=1, New=2)
+- `ReactionType` (Like=0, Dislike=1)
+- `UserRole` (User=0, Moderator=1, Admin=2)
+- `AttachmentType` (Cover=0, Banner=1, Avatar=2, ChapterPage=3)
+- `ViewTargetType` (Series=0, Chapter=1)
+
+**Remaining Tasks**:
 
 **Key Entities to Model**:
 
@@ -164,11 +192,15 @@ ReadingProgress (AuditableEntity)
 - Plus aggregate roots
 
 **Acceptance Criteria**:
-- [ ] All entities inherit from AuditableEntity
+- [x] All 16 entities defined (14 AuditableEntity, 1 BaseEntity)
+- [x] 6 enums defined: SeriesStatus, MangaBadge, ReactionType, UserRole, AttachmentType, ViewTargetType
+- [x] EF Core entity configurations (14+) with snake_case naming
+- [x] 3 migrations applied: InitialSchema, AddPersonAndAttachment, AddViewStats
+- [x] Soft-delete global filter on AuditableEntity
+- [x] ViewStat anti-bloat strategy (daily time-bucketed aggregation)
 - [ ] All value objects defined and tested
 - [ ] All domain events defined
 - [ ] Repository interfaces created
-- [ ] EF Core entity configurations written
 - [ ] Domain logic tests (>80% coverage)
 - [ ] Aggregate root invariants enforced
 - [ ] No framework dependencies in Domain
@@ -472,7 +504,7 @@ dotnet ef database update
 | Phase | Status | Start | End | Duration |
 |-------|--------|-------|-----|----------|
 | 1: Foundation | Complete | 2026-02-06 | 2026-02-13 | 1 week |
-| 2: Domain Modeling | Planned | 2026-02-20 | 2026-04-10 | 7 weeks |
+| 2: Domain Modeling | In Progress | 2026-02-13 | 2026-04-10 | 8 weeks |
 | 3: API Implementation | Planned | 2026-04-11 | 2026-05-23 | 6 weeks |
 | 4: Auth & Authz | Planned | 2026-05-24 | 2026-06-27 | 5 weeks |
 | 5: Frontend Integration | Planned | 2026-06-28 | 2026-08-08 | 6 weeks |
@@ -591,6 +623,6 @@ Next roadmap review: End of Phase 2 (2026-04-10)
 
 ---
 
-**Document Version**: 1.0
-**Last Updated**: 2026-02-13
+**Document Version**: 1.1
+**Last Updated**: 2026-02-15
 **Created By**: Documentation Team

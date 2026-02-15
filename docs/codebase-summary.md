@@ -2,9 +2,9 @@
 
 ## Overview
 
-Manga-dotnet is a .NET 10 Clean Architecture REST API with CQRS pattern for manga platform management. Foundational infrastructure complete; no domain business entities yet.
+Manga-dotnet is a .NET 10 Clean Architecture REST API with CQRS pattern for manga platform management. Foundational infrastructure complete; 16 domain entities defined with migrations applied.
 
-**Total LOC (source only)**: ~450 lines across 4 layers + 3 test projects
+**Total LOC (source only)**: ~850+ lines across 4 layers + 3 test projects (domain entities added)
 
 ---
 
@@ -31,10 +31,30 @@ manga-dotnet/
 │   │   ├── Exceptions/
 │   │   │   ├── DomainException.cs    # Base domain exception
 │   │   │   └── NotFoundException.cs  # Entity not found
-│   │   ├── Entities/               # Empty (reserved for domain entities)
-│   │   ├── Enums/                  # Empty (reserved for domain enums)
-│   │   ├── Events/                 # Empty (reserved for domain events)
-│   │   └── ValueObjects/           # Empty (reserved for value objects)
+│   │   ├── Entities/               # 16 domain entities
+│   │   │   ├── MangaSeries.cs      # Manga catalog entry (title, chapters, metadata)
+│   │   │   ├── Chapter.cs          # Chapter of manga series
+│   │   │   ├── ChapterPage.cs      # Individual page of chapter
+│   │   │   ├── AlternativeTitle.cs # Manga titles in other languages
+│   │   │   ├── Genre.cs            # Manga genres/categories
+│   │   │   ├── MangaGenre.cs       # Join table: manga to genres
+│   │   │   ├── Comment.cs          # User comments on series/chapters
+│   │   │   ├── CommentReaction.cs  # Reactions to comments (like/dislike)
+│   │   │   ├── Bookmark.cs         # User bookmarks
+│   │   │   ├── ReadingHistory.cs   # User reading progress
+│   │   │   ├── User.cs             # Platform users
+│   │   │   ├── Person.cs           # Authors/artists
+│   │   │   ├── Attachment.cs       # File storage (covers, banners, avatars)
+│   │   │   └── ViewStat.cs         # Daily view aggregation (anti-bloat)
+│   │   ├── Enums/                  # 6 domain enums
+│   │   │   ├── SeriesStatus.cs     # (Ongoing, Completed, Hiatus)
+│   │   │   ├── MangaBadge.cs       # (Hot, Top, New)
+│   │   │   ├── ReactionType.cs     # (Like, Dislike)
+│   │   │   ├── UserRole.cs         # (User, Moderator, Admin)
+│   │   │   ├── AttachmentType.cs   # (Cover, Banner, Avatar, ChapterPage)
+│   │   │   └── ViewTargetType.cs   # (Series, Chapter)
+│   │   ├── Events/                 # Domain events (reserved)
+│   │   └── ValueObjects/           # Value objects (reserved)
 │   │
 │   ├── Manga.Application/         # Layer 2: Use cases, CQRS handlers (depends on Domain)
 │   │   ├── Common/
@@ -54,10 +74,20 @@ manga-dotnet/
 │   ├── Manga.Infrastructure/       # Layer 3: External services, persistence (depends on Application)
 │   │   ├── Persistence/
 │   │   │   ├── AppDbContext.cs      # EF Core context, implements IAppDbContext + IUnitOfWork
-│   │   │   │                        # Auto-applies soft-delete filter for AuditableEntity
+│   │   │   │                        # DbSets for all 16 entities, soft-delete filter
 │   │   │   ├── Interceptors/
-│   │   │   │   └── AuditableEntityInterceptor.cs # Populates CreatedAt/By, LastModifiedAt/By
-│   │   │   ├── Configurations/     # Empty (reserved for EF Core entity configs)
+│   │   │   │   └── AuditableEntityInterceptor.cs # Populates CreatedAt/By, LastModifiedAt/By, DeletedAt
+│   │   │   ├── Configurations/      # 14+ EF Core entity configurations
+│   │   │   │   ├── MangaSeriesConfiguration.cs
+│   │   │   │   ├── ChapterConfiguration.cs
+│   │   │   │   ├── PersonConfiguration.cs
+│   │   │   │   ├── AttachmentConfiguration.cs
+│   │   │   │   ├── ViewStatConfiguration.cs (composite PK: TargetType, TargetId, ViewDate)
+│   │   │   │   └── ...other entity configs
+│   │   │   ├── Migrations/
+│   │   │   │   ├── 20260215044212_InitialSchema.cs
+│   │   │   │   ├── 20260215064500_AddPersonAndAttachment.cs
+│   │   │   │   └── 20260215074337_AddViewStats.cs
 │   │   │   └── Repositories/
 │   │   │       └── BaseRepository.cs # EF Core IRepository<T> implementation
 │   │   ├── Services/
@@ -362,18 +392,29 @@ Used for load balancer checks, Kubernetes probes.
 
 ---
 
-## Code Statistics
+## Key Statistics
 
 | Layer | Files | LOC | Purpose |
 |-------|-------|-----|---------|
-| Domain | 8 | ~83 | Business logic |
-| Application | 8 | ~123 | Use cases |
-| Infrastructure | 5 | ~131 | Persistence |
-| Api | 4 | ~86 | Endpoints |
-| **Total Source** | **25** | **~423** | |
+| Domain | 28 | ~400 | 16 entities, 6 enums, base classes |
+| Application | 8 | ~123 | Use cases, validation, behaviors |
+| Infrastructure | 20+ | ~350 | AppDbContext, 14+ configs, 3 migrations |
+| Api | 4 | ~86 | Endpoints, middleware |
+| **Total Source** | **60+** | **~850+** | |
 | Tests | 3 | ~30 | (stubs) |
+
+## Database Schema
+
+**Entities**: 16 total
+- **Auditable** (14): MangaSeries, Chapter, ChapterPage, AlternativeTitle, Genre, MangaGenre, Comment, CommentReaction, Bookmark, ReadingHistory, User, Person, Attachment
+- **Non-Auditable** (1): ViewStat (performance-optimized for analytics)
+
+**Migrations**: 3 applied
+1. InitialSchema (Feb 13) — Core entities
+2. AddPersonAndAttachment (Feb 13) — Authors/artists + file storage
+3. AddViewStats (Feb 15) — Daily view aggregation
 
 ---
 
-**Generated**: 2026-02-13
-**Version**: 1.0
+**Generated**: 2026-02-15
+**Version**: 1.1

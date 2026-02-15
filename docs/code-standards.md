@@ -413,6 +413,61 @@ public class UserRepository(AppDbContext dbContext)
 }
 ```
 
+### EF Core Entity Configuration
+
+**All entities must have IEntityTypeConfiguration**:
+```csharp
+public class MangaSeriesConfiguration : IEntityTypeConfiguration<MangaSeries>
+{
+    public void Configure(EntityTypeBuilder<MangaSeries> builder)
+    {
+        builder.ToTable("manga_series");
+
+        // Primary key
+        builder.HasKey(x => x.Id);
+
+        // Required fields
+        builder.Property(x => x.Title)
+            .IsRequired()
+            .HasMaxLength(200);
+
+        // Indexes for common queries
+        builder.HasIndex(x => x.AuthorId);
+        builder.HasIndex(x => x.Status);
+        builder.HasIndex(x => x.IsDeleted); // For soft-delete filter
+
+        // Foreign keys
+        builder.HasOne<Person>()
+            .WithMany()
+            .HasForeignKey(x => x.AuthorId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+```
+
+**Special Case: ViewStat (Non-Auditable Entity)**:
+```csharp
+public class ViewStatConfiguration : IEntityTypeConfiguration<ViewStat>
+{
+    public void Configure(EntityTypeBuilder<ViewStat> builder)
+    {
+        builder.ToTable("view_stats");
+
+        // Composite primary key: TargetType, TargetId, ViewDate
+        builder.HasKey(x => new { x.TargetType, x.TargetId, x.ViewDate });
+
+        // Indexes for trending queries
+        builder.HasIndex(x => new { x.TargetType, x.ViewDate })
+            .HasName("idx_view_stats_trending");
+
+        builder.HasIndex(x => x.TargetId)
+            .HasName("idx_view_stats_target");
+    }
+}
+```
+
+**Naming Convention**: Use snake_case for table/column names in PostgreSQL.
+
 ### Entity Lifecycle
 
 **Create**:
@@ -612,5 +667,5 @@ var connectionString = configuration.GetConnectionString("Default")
 
 ---
 
-**Version**: 1.0
-**Last Updated**: 2026-02-13
+**Version**: 1.1
+**Last Updated**: 2026-02-15

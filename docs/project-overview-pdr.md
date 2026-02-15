@@ -13,11 +13,11 @@ Build a foundational REST API that serves a manga reading/management platform wi
 - Personal library/bookmarks management
 - Support for future frontend and mobile applications
 
-## Current Status: Foundation Phase (In Progress)
+## Current Status: Domain Modeling Phase (In Progress)
 
-**Scaffolding Complete**: Base layers implemented, no domain entities yet.
-
-**Key Milestone**: Infrastructure ready for domain modeling sprint.
+**Scaffolding Complete**: Base layers implemented.
+**Domain Entities**: 16 entities defined with migrations applied (InitialSchema, AddPersonAndAttachment, AddViewStats).
+**Key Milestone**: Domain model complete; API implementation next.
 
 ---
 
@@ -32,24 +32,22 @@ Build a foundational REST API that serves a manga reading/management platform wi
 
 **Completion**: 100%
 
-### Phase 2: Domain Modeling (Next)
+### Phase 2: Domain Modeling (In Progress - 70% Complete)
 **Goal**: Define core business entities and their relationships.
 
-**Requirements**:
-- Manga entity with metadata (title, author, description, status)
-- Chapter entity (chapter number, title, release date)
-- User entity for auth & profile
-- Library/Bookmark aggregates for user collections
-- Domain value objects (Rating, SeriesStatus, Genre)
+**Completed**:
+- [x] 16 entities: MangaSeries, Chapter, ChapterPage, AlternativeTitle, Genre, MangaGenre, Comment, CommentReaction, Bookmark, ReadingHistory, User, Person, Attachment, ViewStat
+- [x] 6 enums: SeriesStatus, MangaBadge, ReactionType, UserRole, AttachmentType, ViewTargetType
+- [x] EF Core configurations with snake_case naming & indexes
+- [x] 3 migrations applied (InitialSchema, AddPersonAndAttachment, AddViewStats)
+- [x] Soft-delete global filter on AuditableEntity
+- [x] ViewStat anti-bloat strategy (daily time-bucketed aggregation)
 
-**Acceptance Criteria**:
-- All entities inherit from AuditableEntity
-- Domain events defined for key state changes
-- Repository interfaces created
-- EF Core configurations in place
-- 80%+ test coverage for domain logic
+**In Progress**:
+- Repository interfaces & EF configurations for all entities
+- Domain tests (targeting 80%+ coverage)
 
-**Timeline**: 2-3 sprints
+**Timeline**: 2-3 sprints (Extended to Q1 2026)
 
 ### Phase 3: API Implementation
 **Goal**: Implement read/write endpoints for core domain.
@@ -195,6 +193,6 @@ Build a foundational REST API that serves a manga reading/management platform wi
 
 ---
 
-**Document Version**: 1.0
-**Last Updated**: 2026-02-13
-**Next Review**: End of Phase 2
+**Document Version**: 1.1
+**Last Updated**: 2026-02-15
+**Next Review**: End of Phase 2 (2026-04-10)

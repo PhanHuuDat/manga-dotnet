@@ -53,10 +53,11 @@ Manga-dotnet follows **Clean Architecture** with strict layer separation and **C
 │           Infrastructure Layer (External Services)        │
 │  ┌─────────────────────────────────────────────────────┐ │
 │  │  Persistence (EF Core)                              │ │
-│  │  - AppDbContext (implements IAppDbContext)          │ │
-│  │  - Soft-delete global query filter                  │ │
-│  │  - Entity configurations (fluent API)               │ │
-│  │  - Migrations (awaiting entity modeling)            │ │
+│  │  - AppDbContext: 16 DbSets, IAppDbContext impl      │ │
+│  │  - Soft-delete global query filter (AuditableEntity)
+│  │  - 14+ fluent entity configurations, indexes        │ │
+│  │  - 3 migrations: InitialSchema, AddPerson, ViewStat
+│  │  - Supports snake_case column naming                │ │
 │  └─────────────────────────────────────────────────────┘ │
 │  ┌─────────────────────────────────────────────────────┐ │
 │  │  Repositories                                       │ │
@@ -74,9 +75,14 @@ Manga-dotnet follows **Clean Architecture** with strict layer separation and **C
 ┌──────────────────────────────────────────────────────────┐
 │            Domain Layer (Business Logic)                  │
 │  ┌─────────────────────────────────────────────────────┐ │
-│  │  Entities (reserved, no entities yet)               │ │
-│  │  - User, Manga, Chapter, UserLibrary, etc.          │ │
-│  │  - Inherit from AuditableEntity                     │ │
+│  │  Entities (16 defined: 14 auditable, 1 optimized)   │ │
+│  │  - MangaSeries, Chapter, ChapterPage (manga core)   │ │
+│  │  - User, Person, Comment, CommentReaction          │ │
+│  │  - Bookmark, ReadingHistory (user features)         │ │
+│  │  - Genre, MangaGenre, AlternativeTitle             │ │
+│  │  - Attachment (file storage: covers, banners)      │ │
+│  │  - ViewStat (daily aggregation, anti-bloat)        │ │
+│  │  - Inherit from AuditableEntity (soft-delete)      │ │
 │  └─────────────────────────────────────────────────────┘ │
 │  ┌─────────────────────────────────────────────────────┐ │
 │  │  Value Objects                                      │ │
@@ -696,5 +702,5 @@ Monitoring (Datadog/Azure Monitor)
 
 ---
 
-**Document Version**: 1.0
-**Last Updated**: 2026-02-13
+**Document Version**: 1.1
+**Last Updated**: 2026-02-15

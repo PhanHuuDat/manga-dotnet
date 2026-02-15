@@ -89,7 +89,7 @@ dotnet test
 
 ## Current Status
 
-**Phase**: Foundation complete — infrastructure ready for domain modeling.
+**Phase**: Foundation complete with domain entities in progress — 16 entities defined, 3 migrations applied.
 
 See [docs/project-roadmap.md](docs/project-roadmap.md) for full roadmap.
 
