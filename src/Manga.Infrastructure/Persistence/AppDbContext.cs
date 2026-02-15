@@ -24,6 +24,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Attachment> Attachments => Set<Attachment>();
     public DbSet<ViewStat> ViewStats => Set<ViewStat>();
     public DbSet<UserRoleMapping> UserRoleMappings => Set<UserRoleMapping>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<VerificationToken> VerificationTokens => Set<VerificationToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

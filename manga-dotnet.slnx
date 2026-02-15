@@ -16,5 +16,6 @@
     <Project Path="tests/Manga.Domain.Tests/Manga.Domain.Tests.csproj" />
     <Project Path="tests/Manga.Application.Tests/Manga.Application.Tests.csproj" />
     <Project Path="tests/Manga.Api.Tests/Manga.Api.Tests.csproj" />
+    <Project Path="tests/Manga.Infrastructure.Tests/Manga.Infrastructure.Tests.csproj" />
   </Folder>
 </Solution>

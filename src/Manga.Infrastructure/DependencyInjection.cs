@@ -1,5 +1,7 @@
 using Manga.Application.Common.Interfaces;
 using Manga.Domain.Interfaces;
+using Manga.Infrastructure.Auth;
+using Manga.Infrastructure.Email;
 using Manga.Infrastructure.Persistence;
 using Manga.Infrastructure.Persistence.Interceptors;
 using Manga.Infrastructure.Services;
@@ -44,6 +46,21 @@ public static class DependencyInjection
             options.Configuration = redisConnectionString);
 
         services.AddSingleton<IRedisConnectionProvider, RedisConnectionProvider>();
+
+        // Auth services
+        services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
+        services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
+        services.AddScoped<ITokenService, JwtTokenService>();
+        services.AddSingleton<ITokenBlacklistService, TokenBlacklistService>();
+        services.AddSingleton<IAuthSettings, AuthSettingsAdapter>();
+
+        // Email service (conditional: dev logs to console, prod uses SMTP)
+        services.Configure<EmailSettings>(configuration.GetSection(EmailSettings.SectionName));
+
+        if (configuration.GetValue<bool>("Email:UseDev"))
+            services.AddScoped<IEmailService, DevEmailService>();
+        else
+            services.AddScoped<IEmailService, SmtpEmailService>();
 
         return services;
     }

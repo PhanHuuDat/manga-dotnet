@@ -38,6 +38,11 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.IsOnline)
             .HasDefaultValue(false);
 
+        builder.Property(u => u.EmailConfirmed)
+            .HasDefaultValue(false);
+
+        builder.Property(u => u.LastLoginAt);
+
         builder.HasIndex(u => u.Username).IsUnique();
         builder.HasIndex(u => u.Email).IsUnique();
     }

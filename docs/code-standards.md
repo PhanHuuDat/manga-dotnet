@@ -605,36 +605,95 @@ public class CreateMangaCommandValidator : AbstractValidator<CreateMangaCommand>
 }
 ```
 
-### Authentication & Authorization
+### Authentication & Authorization (Implemented)
 
-- Use JWT tokens with short expiry (15 minutes)
-- Refresh tokens: 7 days
+- JWT access tokens: 15-minute expiry
+- Refresh tokens: 7-day expiry, HttpOnly cookies
+- Token rotation: Blacklist old token on refresh
 - Always include `[Authorize]` on protected endpoints
+- Use Permission enum for RBAC checks
+- AuthorizationBehavior enforces permissions in MediatR pipeline
 
 ```csharp
-[HttpGet("{id}")]
-[Authorize(Roles = "Admin")]
-public async Task<IActionResult> GetUser(Guid id, CancellationToken ct)
+[HttpPost("logout")]
+[Authorize]
+public async Task<IActionResult> Logout(LogoutCommand cmd, CancellationToken ct)
 {
-    // ...
+    var result = await _mediator.Send(cmd, ct);
+    // Response clears HttpOnly cookie
+    return result.Succeeded ? Ok() : Unauthorized();
+}
+
+public class Permission
+{
+    public const string View = "view";
+    public const string Create = "create";
+    public const string Update = "update";
+    public const string Delete = "delete";
+    public const string Moderate = "moderate";
+    public const string Admin = "admin";
+}
+
+public static class RolePermissions
+{
+    public static readonly Dictionary<UserRole, string[]> Permissions = new()
+    {
+        { UserRole.User, new[] { Permission.View } },
+        { UserRole.Uploader, new[] { Permission.View, Permission.Create } },
+        { UserRole.Moderator, new[] { Permission.View, Permission.Update, Permission.Delete, Permission.Moderate } },
+        { UserRole.Admin, new[] { Permission.View, Permission.Create, Permission.Update, Permission.Delete, Permission.Moderate, Permission.Admin } }
+    };
 }
 ```
+
+### Password Storage (Implemented)
+
+- Hash passwords with BCrypt (work factor 12)
+- Never store or log plaintext passwords
+- Password reset invalidates all refresh tokens
+
+```csharp
+var hashedPassword = BCrypt.Net.BCrypt.HashPassword(password, workFactor: 12);
+var isValid = BCrypt.Net.BCrypt.Verify(password, hashedPassword);
+```
+
+### Email Verification & Password Reset (Implemented)
+
+- Email verification tokens expire (24 hours default)
+- Password reset tokens expire and invalidate all sessions
+- Use MailKit for production, DevEmailService for development
+
+```csharp
+// Register sends verification email
+await _emailService.SendEmailAsync(user.Email, "Verify Email", verificationUrl, ct);
+
+// ResetPassword invalidates all tokens
+await _tokenBlacklistService.InvalidateAllUserTokensAsync(user.Id);
+```
+
+### Token Blacklisting (Implemented)
+
+- Redis-backed blacklist for logout/token revocation
+- Tokens expire at their TTL in Redis
+- RefreshCommand checks blacklist before issuing new token
 
 ### Sensitive Data
 
 - Never log passwords, tokens, or PII
-- Use `[SensitiveData]` attribute on DTOs containing sensitive info
-- Mask credit card numbers in logs
+- Log only userId and action
+- Mask tokens in logs (first 5 chars + "****")
 
 ```csharp
-[Serializable]
-public class LoginCommand : IRequest<Result<AuthToken>>
+// In LoggingBehavior:
+if (request is LoginCommand loginCmd)
 {
-    public string Email { get; set; }
-
-    [SensitiveData]
-    public string Password { get; set; }
+    _logger.LogInformation("LoginCommand for email: {Email}", loginCmd.Email);
+    // Do NOT log password
 }
+
+// Token handling:
+_logger.LogInformation("RefreshCommand for user: {UserId}", userId);
+// Do NOT log full token value
 ```
 
 ---

@@ -29,6 +29,12 @@ public class User : AuditableEntity
     /// <summary>Whether the user is currently active on the platform.</summary>
     public bool IsOnline { get; set; }
 
+    /// <summary>Whether email address has been verified.</summary>
+    public bool EmailConfirmed { get; set; }
+
+    /// <summary>Last successful login timestamp.</summary>
+    public DateTimeOffset? LastLoginAt { get; set; }
+
     // Navigation properties
     public Attachment? Avatar { get; set; }
     public ICollection<UserRoleMapping> UserRoles { get; set; } = [];
@@ -36,4 +42,6 @@ public class User : AuditableEntity
     public ICollection<CommentReaction> CommentReactions { get; set; } = [];
     public ICollection<Bookmark> Bookmarks { get; set; } = [];
     public ICollection<ReadingHistory> ReadingHistories { get; set; } = [];
+    public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
+    public ICollection<VerificationToken> VerificationTokens { get; set; } = [];
 }

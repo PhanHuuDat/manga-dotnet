@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Manga.Api.Middleware;
 
 /// <summary>
-/// Global exception handler mapping domain/validation exceptions to ProblemDetails.
+/// Global exception handler mapping domain/validation/auth exceptions to ProblemDetails.
 /// </summary>
 public class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IExceptionHandler
 {
@@ -24,6 +24,16 @@ public class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IE
                 StatusCodes.Status404NotFound,
                 "Not Found",
                 notFoundEx.Message),
+
+            UnauthorizedAccessException => (
+                StatusCodes.Status401Unauthorized,
+                "Unauthorized",
+                "Authentication required."),
+
+            ForbiddenAccessException forbiddenEx => (
+                StatusCodes.Status403Forbidden,
+                "Forbidden",
+                forbiddenEx.Message),
 
             DomainException domainEx => (
                 StatusCodes.Status422UnprocessableEntity,

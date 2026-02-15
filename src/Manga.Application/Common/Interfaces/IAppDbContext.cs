@@ -20,6 +20,8 @@ public interface IAppDbContext
     DbSet<Attachment> Attachments { get; }
     DbSet<ViewStat> ViewStats { get; }
     DbSet<UserRoleMapping> UserRoleMappings { get; }
+    DbSet<RefreshToken> RefreshTokens { get; }
+    DbSet<VerificationToken> VerificationTokens { get; }
 
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

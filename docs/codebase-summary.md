@@ -26,6 +26,8 @@ manga-dotnet/
 │   │   │   └── ValueObject.cs     # DDD value object base with structural equality
 │   │   ├── Interfaces/
 │   │   │   ├── IUnitOfWork.cs     # SaveChangesAsync contract
+│   │   │   ├── ITokenService.cs   # JWT token generation/validation
+│   │   │   ├── IEmailService.cs   # Email sending (SMTP/dev)
 │   │   │   └── Repositories/
 │   │   │       └── IRepository.cs # Generic CRUD: GetById, GetAll, Find, Add, Update, Remove
 │   │   ├── Exceptions/
@@ -46,13 +48,14 @@ manga-dotnet/
 │   │   │   ├── Person.cs           # Authors/artists
 │   │   │   ├── Attachment.cs       # File storage (covers, banners, avatars)
 │   │   │   └── ViewStat.cs         # Daily view aggregation (anti-bloat)
-│   │   ├── Enums/                  # 6 domain enums
+│   │   ├── Enums/                  # 7 domain enums
 │   │   │   ├── SeriesStatus.cs     # (Ongoing, Completed, Hiatus)
 │   │   │   ├── MangaBadge.cs       # (Hot, Top, New)
 │   │   │   ├── ReactionType.cs     # (Like, Dislike)
 │   │   │   ├── UserRole.cs         # (User, Moderator, Admin)
 │   │   │   ├── AttachmentType.cs   # (Cover, Banner, Avatar, ChapterPage)
-│   │   │   └── ViewTargetType.cs   # (Series, Chapter)
+│   │   │   ├── ViewTargetType.cs   # (Series, Chapter)
+│   │   │   └── Permission.cs       # (View, Create, Update, Delete, Moderate, Admin)
 │   │   ├── Events/                 # Domain events (reserved)
 │   │   └── ValueObjects/           # Value objects (reserved)
 │   │
@@ -91,17 +94,21 @@ manga-dotnet/
 │   │   │   └── Repositories/
 │   │   │       └── BaseRepository.cs # EF Core IRepository<T> implementation
 │   │   ├── Services/
-│   │   │   └── DateTimeProvider.cs   # System clock (UTC) implementation
-│   │   └── DependencyInjection.cs   # Registers EF Core, Npgsql, interceptors, repos
+│   │   │   ├── DateTimeProvider.cs           # System clock (UTC) implementation
+│   │   │   ├── TokenService.cs               # JWT token generation/validation, refresh token rotation
+│   │   │   ├── MailKitEmailService.cs        # Real SMTP email sending (prod)
+│   │   │   └── DevEmailService.cs            # Console email logging (dev)
+│   │   └── DependencyInjection.cs   # Registers EF Core, Npgsql, interceptors, repos, auth services
 │   │
 │   └── Manga.Api/                  # Layer 4: HTTP endpoints, middleware (depends on Application)
-│       ├── Program.cs              # Minimal API host: DI, middleware, endpoint mapping
+│       ├── Program.cs              # Minimal API host: DI, middleware, endpoint mapping, JWT config
 │       ├── Middleware/
 │       │   └── GlobalExceptionHandler.cs # Maps exceptions to RFC 9457 ProblemDetails
 │       ├── Services/
 │       │   └── CurrentUserService.cs     # Extracts user from HttpContext.User claims
 │       ├── Endpoints/
-│       │   └── HealthEndpoints.cs        # GET /health endpoint
+│       │   ├── HealthEndpoints.cs        # GET /health endpoint
+│       │   └── AuthEndpoints.cs          # Auth endpoints (register, login, refresh, logout, verify-email, forgot-password, reset-password, me)
 │       └── Properties/
 │           └── launchSettings.json       # http:5087, https:7123
 │
@@ -180,11 +187,12 @@ Api (Presentation)
 
 | File | LOC | Purpose |
 |------|-----|---------|
-| Program.cs | 41 | Host builder, middleware, DI |
+| Program.cs | 65 | Host builder, middleware, DI, JWT config |
 | Middleware/GlobalExceptionHandler.cs | 25 | Exception → ProblemDetails mapping |
 | Services/CurrentUserService.cs | 12 | ClaimsPrincipal extraction |
 | Endpoints/HealthEndpoints.cs | 8 | GET /health endpoint |
-| **Total** | ~86 | |
+| Endpoints/AuthEndpoints.cs | 85 | Auth endpoints (register, login, refresh, logout, verify-email, forgot-password, reset-password, me) |
+| **Total** | ~195 | |
 
 ### Test Projects
 
@@ -396,12 +404,12 @@ Used for load balancer checks, Kubernetes probes.
 
 | Layer | Files | LOC | Purpose |
 |-------|-------|-----|---------|
-| Domain | 28 | ~400 | 16 entities, 6 enums, base classes |
-| Application | 8 | ~123 | Use cases, validation, behaviors |
-| Infrastructure | 20+ | ~350 | AppDbContext, 14+ configs, 3 migrations |
-| Api | 4 | ~86 | Endpoints, middleware |
-| **Total Source** | **60+** | **~850+** | |
-| Tests | 3 | ~30 | (stubs) |
+| Domain | 30 | ~450 | 16 entities, 7 enums, base classes, auth interfaces |
+| Application | 18 | ~320 | Auth/email handlers, validation, behaviors, auth service |
+| Infrastructure | 24+ | ~500 | AppDbContext, 14+ configs, 4 migrations, token/email services |
+| Api | 6 | ~195 | Auth endpoints (8), health, middleware, auth config |
+| **Total Source** | **78+** | **~1,465+** | |
+| Tests | 3 | ~1,200+ | 48 auth tests (xUnit) |
 
 ## Database Schema
 
@@ -409,12 +417,13 @@ Used for load balancer checks, Kubernetes probes.
 - **Auditable** (14): MangaSeries, Chapter, ChapterPage, AlternativeTitle, Genre, MangaGenre, Comment, CommentReaction, Bookmark, ReadingHistory, User, Person, Attachment
 - **Non-Auditable** (1): ViewStat (performance-optimized for analytics)
 
-**Migrations**: 3 applied
+**Migrations**: 4 applied
 1. InitialSchema (Feb 13) — Core entities
 2. AddPersonAndAttachment (Feb 13) — Authors/artists + file storage
 3. AddViewStats (Feb 15) — Daily view aggregation
+4. AddAuthEntities (Feb 15) — RefreshToken entity, auth-specific indexes
 
 ---
 
 **Generated**: 2026-02-15
-**Version**: 1.1
+**Version**: 1.2 (Authentication & Authorization Completed)

@@ -618,49 +618,153 @@ var userDtos = await _dbContext.Users
 
 ---
 
-## Authentication & Security (Future)
+## Authentication & Security (Implemented)
 
-### JWT Token Flow
+### JWT Token Lifecycle
 
 ```
-User submits credentials
+User submits credentials (RegisterCommand / LoginCommand)
     ↓
-LoginCommand handler
+Validate email format & password strength (FluentValidation)
     ↓
-Hash password matches
+Check email uniqueness (db query)
     ↓
-GenerateJwtToken (claims: userId, username, roles)
+Hash password with BCrypt (work factor 12)
     ↓
-Return token to client
+Create User entity + optional RefreshToken
     ↓
-Client includes in Authorization header
+SaveChangesAsync → audit trail auto-populated
     ↓
-[Authorize] attribute on endpoints
+TokenService.GenerateAccessToken()
+  - Claims: userId (sub), email (email), roles, permissions
+  - Expiry: 15 minutes
+  - Algorithm: HS256
+  - Signature: JWT_SECRET
     ↓
-Middleware validates token signature
+TokenService.GenerateRefreshToken()
+  - Random 32-byte token
+  - Expires: 7 days
+  - Stored in DB + HttpOnly cookie
+    ↓
+Return AuthToken response with access + refresh
+    ↓
+Client stores access (memory), refresh (HttpOnly cookie)
+```
+
+### Request Authentication Flow
+
+```
+Client sends request with access token in Authorization header
+    ↓
+JWT authentication middleware validates signature
     ↓
 Extract claims → populate HttpContext.User
     ↓
-CurrentUserService reads claims
+[Authorize] attribute checks token presence
     ↓
-Handler uses ICurrentUserService.UserId
+AuthorizationBehavior (MediatR) checks RBAC permissions
+    ↓
+CurrentUserService extracts userId from claims
+    ↓
+Handler uses ICurrentUserService.UserId for audit trail
+    ↓
+Response includes fresh access token in Set-Cookie header
 ```
 
-### Authorization Policy
+### Token Refresh Flow
 
 ```
-[Authorize(Roles = "Admin")]
-async Task DeleteMangaAsync(Guid id)
-
-Request with token
+Access token expired (401)
     ↓
-Middleware extracts claims
+Client sends RefreshCommand with refresh token from cookie
     ↓
-Check if "Admin" role in claims
+TokenService validates refresh token (signature, expiry, blacklist)
     ↓
-If present: allow
-If absent: 403 Forbidden
+If blacklisted → 401 (logout invalidated it)
+    ↓
+If valid → Generate new access token
+    ↓
+Optionally rotate refresh token (new random token, store old in blacklist)
+    ↓
+Return new access token + new refresh token (if rotated)
+    ↓
+Client updates memory + cookie
 ```
+
+### Role-Based Access Control (RBAC)
+
+```
+Permission enum (static mapping):
+  View    → Roles: User, Moderator, Admin
+  Create  → Roles: Uploader, Admin
+  Update  → Roles: Creator (own), Moderator, Admin
+  Delete  → Roles: Creator (own), Moderator, Admin
+  Moderate → Roles: Moderator, Admin
+  Admin   → Roles: Admin only
+
+AuthorizationBehavior checks:
+1. Extract user roles from claims
+2. Map role → permissions via RolePermissions
+3. Check if required permission present
+4. If missing → 403 Forbidden
+```
+
+### Email Verification & Password Reset
+
+```
+RegisterCommand → Send verification email
+    ↓
+VerifyEmailCommand (token from email link)
+    ↓
+TokenService.ValidateEmailToken()
+    ↓
+Update User.IsEmailVerified = true
+    ↓
+Subsequent login checks verification (configurable requirement)
+
+ForgotPasswordCommand → Send reset email
+    ↓
+ResetPasswordCommand (token + new password)
+    ↓
+TokenService.ValidatePasswordResetToken()
+    ↓
+Hash new password
+    ↓
+Update User.PasswordHash
+    ↓
+Invalidate all refresh tokens (force re-login on other devices)
+```
+
+### Token Blacklisting & Logout
+
+```
+LogoutCommand (user authenticated)
+    ↓
+Extract refresh token from request
+    ↓
+RedisTokenBlacklistService.BlacklistTokenAsync(token, expiry)
+    ↓
+Token stored in Redis with TTL (expires at original expiry time)
+    ↓
+Subsequent RefreshCommand checks Redis blacklist
+    ↓
+If found → 401 Unauthorized
+    ↓
+Response clears HttpOnly cookie (Set-Cookie with Max-Age=0)
+    ↓
+Client memory access token becomes invalid on next API call (401)
+```
+
+### Security Measures
+
+1. **Password Storage**: BCrypt with work factor 12 (configurable)
+2. **Token Expiry**: Access 15min, Refresh 7 days
+3. **Token Rotation**: Optional on refresh (new token invalidates old)
+4. **Cookie Security**: HttpOnly, Secure, SameSite=Strict
+5. **Email Verification**: Tokens expire, one-time use
+6. **Password Reset**: Invalidates all sessions
+7. **Rate Limiting**: (Future, placeholder in code)
+8. **OWASP Compliance**: Input validation, output encoding, CSRF (SameSite)
 
 ---
 
