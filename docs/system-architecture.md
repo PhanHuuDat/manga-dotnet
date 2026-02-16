@@ -806,5 +806,188 @@ Monitoring (Datadog/Azure Monitor)
 
 ---
 
-**Document Version**: 1.1
-**Last Updated**: 2026-02-15
+## View Tracking Architecture (Phase 5)
+
+### Overview
+
+Real-time view analytics using Redis HyperLogLog for unique visitor counting and EF Core daily aggregation to prevent table bloat.
+
+### Data Flow
+
+```
+User views manga/chapter
+    ↓
+TrackViewCommand (public endpoint, no auth)
+    ↓
+POST /api/views/track
+{
+  targetType: "Series" | "Chapter",
+  targetId: Guid,
+  viewerIdentifier: SHA256(IP + UserAgent) // anonymous
+}
+    ↓
+TrackViewCommandHandler
+    ├─ Validate input
+    ├─ Call IViewTrackingService.TrackViewAsync()
+    ↓
+RedisViewTrackingService
+    ├─ HyperLogLog: Add viewer to HLLS
+    │  Key: views:{targetType}:{targetId}:{date}
+    │  TTL: 30 days
+    ├─ Increment daily view count in ViewStat
+    │  via EF Core upsert (composite PK: TargetType, TargetId, ViewDate)
+    ↓
+Metrics updated:
+- Redis HLLSET: O(1) memory, millions of unique visitors
+- ViewStat: ~1KB per day per manga
+```
+
+### Redis HyperLogLog Strategy
+
+**Key Pattern**: `views:{TargetType}:{TargetId}:{YYYYMMDD}`
+```
+views:Series:12345678-1234-1234-1234-123456789012:20260216
+```
+
+**Benefits**:
+- Memory efficient: 12KB per 30 days (1M visitors)
+- Accuracy: ~2% error tolerance acceptable for analytics
+- Automatic expiry: 30-day sliding window
+
+**Viewer Identification**:
+```csharp
+var hash = SHA256.ComputeHash(Encoding.UTF8.GetBytes($"{ip}{userAgent}"));
+var viewerIdentifier = Convert.ToHexString(hash);
+```
+
+### ViewStat Daily Aggregation
+
+**Entity:**
+```csharp
+public class ViewStat : BaseEntity
+{
+    public ViewTargetType TargetType { get; set; }    // Series, Chapter
+    public Guid TargetId { get; set; }
+    public DateTime ViewDate { get; set; }            // UTC, no time component
+    public long UniqueViewCount { get; set; }         // Read from Redis
+}
+```
+
+**Composite Primary Key**: (TargetType, TargetId, ViewDate)
+
+**Upsert Pattern** (EF Core):
+```csharp
+await dbContext.ViewStats
+    .Upsert(new ViewStat { TargetType, TargetId, ViewDate, UniqueViewCount })
+    .On(vs => new { vs.TargetType, vs.TargetId, vs.ViewDate })
+    .WhenMatched(x => x.SetProperty(p => p.UniqueViewCount, p => p.UniqueViewCount + 1))
+    .RunAsync(ct);
+```
+
+### GetTrendingMangaQuery Integration
+
+**Ranking**:
+```sql
+SELECT m.*
+FROM manga_series m
+JOIN (
+    SELECT target_id, SUM(unique_view_count) as total_views
+    FROM view_stats
+    WHERE target_type = 'Series'
+      AND view_date >= CURRENT_DATE - INTERVAL '30 days'
+    GROUP BY target_id
+) stats ON m.id = stats.target_id
+ORDER BY stats.total_views DESC
+LIMIT 10
+```
+
+---
+
+## CI/CD Pipeline Architecture (Phase 5)
+
+### GitHub Actions Workflows
+
+#### Backend Pipeline (manga-dotnet/.github/workflows/ci.yml)
+
+**Trigger**: `push` to main, `pull_request` events
+
+**Services**:
+```yaml
+services:
+  postgres:
+    image: postgres:17
+    options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s
+  redis:
+    image: redis:7
+    options: --health-cmd "redis-cli ping" --health-interval 10s
+```
+
+**Jobs**:
+1. **Restore**
+   - Checkout code
+   - Setup .NET 10 SDK
+   - Restore NuGet packages
+
+2. **Build**
+   - Build solution (Release config)
+   - No warnings allowed
+
+3. **Test**
+   - Run xUnit test suite (all projects)
+   - Generate coverage reports
+   - Upload to coverage service
+
+4. **Publish** (future)
+   - Build Docker image
+   - Push to registry
+
+#### Frontend Pipeline (web-manga/.github/workflows/ci.yml)
+
+**Trigger**: `push` to main, `pull_request` events
+
+**Environment**:
+- Node 22 (LTS)
+- pnpm package manager
+
+**Jobs**:
+1. **Lint**
+   - ESLint: TS/TSX files
+   - Fail on errors
+
+2. **Build**
+   - TypeScript strict mode check
+   - Vite production build
+   - Generate bundle analysis
+
+3. **Test**
+   - Vitest unit tests
+   - jsdom environment
+   - Generate coverage reports
+   - Upload coverage
+
+4. **Accessibility** (future)
+   - Lighthouse CI
+   - axe-core accessibility scanning
+
+### Coverage Reporting
+
+Both pipelines upload coverage to Codecov/SonarQube:
+- Backend: .NET coverage reports (OpenCover format)
+- Frontend: Vitest/c8 coverage (lcov format)
+
+### Build Artifacts
+
+**Backend**:
+- `.github/workflows/ci.yml` runs automatically on push
+- Docker image built on release tags
+- Artifacts: test reports, coverage
+
+**Frontend**:
+- Production build: `dist/`
+- Source maps for error tracking
+- Bundle size analysis
+
+---
+
+**Document Version**: 1.2
+**Last Updated**: 2026-02-16

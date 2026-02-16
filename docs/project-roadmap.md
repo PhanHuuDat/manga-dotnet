@@ -456,7 +456,62 @@ ReadingProgress (AuditableEntity)
 
 ---
 
-### Phase 5: Advanced Features & Reading History
+### Phase 5: View Stats & CI/CD (COMPLETE)
+
+**Status**: 100% Complete ✓
+**Duration**: 1 day
+**Completed**: 2026-02-16
+
+**Goals**:
+- [x] Implement view tracking system
+- [x] Add trending manga ranking
+- [x] Setup GitHub Actions CI/CD for backend & frontend
+
+**Implemented Features**:
+
+#### View Tracking
+- **IViewTrackingService** interface with RedisViewTrackingService impl
+- **TrackViewCommand** for POST /api/views/track (public endpoint)
+- Redis HyperLogLog for unique viewer counting (30-day TTL)
+- Anonymous viewer ID: SHA256(IP + UserAgent)
+- ViewStat daily aggregation with EF Core upsert (anti-bloat)
+- Trending manga ranking by UniqueViewCount
+
+#### GitHub Actions CI/CD
+- **Backend**: .NET 10 + PostgreSQL 17 + Redis 7 services
+  - Restore, build, test (xUnit)
+  - Coverage reports
+- **Frontend**: Node 22 + pnpm
+  - Lint (ESLint), build (TypeScript + Vite), test (Vitest)
+  - Coverage reports
+
+**Completed Acceptance Criteria**:
+- [x] View tracking endpoint functional
+- [x] Anonymous tracking working correctly
+- [x] Redis HyperLogLog storing unique viewers
+- [x] ViewStat daily aggregation working
+- [x] GetTrendingMangaQuery returns top 10 by views
+- [x] Backend CI/CD pipeline functional
+- [x] Frontend CI/CD pipeline functional
+- [x] All tests pass in CI/CD
+- [x] Coverage reports generated
+
+**Key Implementation Details**:
+- Redis key pattern: `views:{TargetType}:{TargetId}:{YYYYMMDD}`
+- ViewStat composite PK: (TargetType, TargetId, ViewDate)
+- Viewer tracking: SHA256 hash for anonymity
+- CI/CD triggers: push to main, pull_request
+
+**Dependencies Met**:
+- Phase 4: File storage complete ✓
+- Backend API endpoints available ✓
+- Frontend view tracking integration complete ✓
+
+**Next**: → Phase 6: Advanced Features & Bookmarks
+
+---
+
+### Phase 6: Advanced Features & Reading History
 
 **Status**: Pending
 **Duration**: 2 sprints (6 weeks)
@@ -485,14 +540,14 @@ ReadingProgress (AuditableEntity)
 - [ ] All endpoints tested with >90% coverage
 
 **Dependencies**:
-- Phase 4: File storage complete ✓
+- Phase 5: View tracking complete ✓
 - Backend ready for user features
 
-**Next**: → Phase 6: Deployment & DevOps
+**Next**: → Phase 7: Deployment & DevOps
 
 ---
 
-### Phase 6: Deployment & DevOps
+### Phase 7: Deployment & DevOps
 
 **Status**: Blocked (awaiting Phase 5)
 **Duration**: 1.5 sprints (5 weeks)
@@ -580,10 +635,11 @@ dotnet ef database update
 |-------|--------|-------|-----|----------|
 | 1: Foundation | Complete | 2026-02-06 | 2026-02-13 | 1 week |
 | 2: Domain Modeling & Auth | Complete | 2026-02-13 | 2026-02-15 | 3 days |
-| 3: Manga API Endpoints | Complete | 2026-02-16 | 2026-02-16 | 1 week |
-| 4: File Upload & Media | **Complete** | 2026-02-16 | 2026-02-16 | 1 day |
-| 5: Advanced Features | Planned | 2026-02-17 | 2026-03-31 | 6 weeks |
-| 6: Deployment & DevOps | Planned | 2026-04-01 | 2026-05-15 | 6 weeks |
+| 3: Manga API Endpoints | Complete | 2026-02-16 | 2026-02-16 | 1 day |
+| 4: File Upload & Media | Complete | 2026-02-16 | 2026-02-16 | 1 day |
+| 5: View Stats & CI/CD | **Complete** | 2026-02-16 | 2026-02-16 | 1 day |
+| 6: Advanced Features | Planned | 2026-02-17 | 2026-03-31 | 6 weeks |
+| 7: Deployment & DevOps | Planned | 2026-04-01 | 2026-05-15 | 6 weeks |
 | **Total** | | 2026-02-06 | ~2026-05-15 | **~13 weeks** |
 
 ---
@@ -621,23 +677,27 @@ dotnet ef database update
 - [x] 16 MediatR handlers total
 - [x] SkiaSharp 3.x integration
 
-### Phase 5 (Advanced Features)
+### Phase 5 (View Stats & CI/CD) ✓ COMPLETE
+- [x] View tracking service (Redis HyperLogLog)
+- [x] Daily view aggregation via EF Core upsert
+- [x] Trending manga ranking by views
+- [x] Anonymous viewer tracking (SHA256)
+- [x] GitHub Actions CI/CD for backend
+- [x] GitHub Actions CI/CD for frontend
+- [x] PostgreSQL 17 + Redis 7 services in pipeline
+- [x] All tests pass in CI/CD
+
+### Phase 6 (Advanced Features)
 - [ ] Bookmark CRUD endpoints
 - [ ] Reading history tracking
 - [ ] User library management
 - [ ] All bookmarks/history tests passing
 
-### Phase 5 (Advanced Features)
-- [ ] Bookmarking system implemented
-- [ ] Reading history tracking
-- [ ] User library management
-- [ ] Recommendations engine
-
-### Phase 6 (DevOps)
-- [ ] Automated CI/CD fully functional
-- [ ] All tests pass in CI/CD
-- [ ] Production deployment < 5 min
-- [ ] 99.9% uptime achievable
+### Phase 7 (DevOps)
+- [ ] Docker image build & push
+- [ ] Automated deployment to production
+- [ ] Database migration automation
+- [ ] Health monitoring & alerting
 
 ---
 
@@ -711,6 +771,6 @@ Next roadmap review: End of Phase 2 (2026-04-10)
 
 ---
 
-**Document Version**: 1.4 (Phase 4: File Upload & Media Completed)
+**Document Version**: 1.5 (Phase 5: View Stats & CI/CD Completed)
 **Last Updated**: 2026-02-16
 **Created By**: Documentation Team

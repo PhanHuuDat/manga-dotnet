@@ -2,9 +2,9 @@
 
 ## Overview
 
-Manga-dotnet is a .NET 10 Clean Architecture REST API with CQRS pattern for manga platform management. Phase 4 complete with 16 MediatR handlers for manga/chapter/genre/attachment operations, 10 API endpoints, file storage services, and image processing pipeline.
+Manga-dotnet is a .NET 10 Clean Architecture REST API with CQRS pattern for manga platform management. Phase 4 complete with file upload & media. Phase 5 complete with view tracking and CI/CD pipelines. Total 17 MediatR handlers for manga/chapter/genre/attachment/view operations, 11 API endpoints, file storage services, image processing pipeline, Redis-backed view analytics, and GitHub Actions CI/CD.
 
-**Total LOC (source only)**: ~2,500+ lines across 4 layers + 3 test projects (Phase 4 file upload & media services added)
+**Total LOC (source only)**: ~2,700+ lines across 4 layers + 3 test projects (Phase 4-5: file upload, view tracking, CI/CD pipelines added)
 
 ---
 
@@ -103,7 +103,12 @@ manga-dotnet/
 │   │   │       ├── Queries/
 │   │   │       │   └── GetAttachmentFileQuery.cs
 │   │   │       └── Validators/
-│   │   └── DependencyInjection.cs   # Registers MediatR, FluentValidation, behaviors, file services
+│   │   │   └── Views/                # View tracking analytics (Phase 5)
+│   │   │       ├── Commands/
+│   │   │       │   └── TrackViewCommand.cs
+│   │   │       ├── Validators/
+│   │   │       └── Handlers/
+│   │   └── DependencyInjection.cs   # Registers MediatR, FluentValidation, behaviors, file services, view tracking
 │   │
 │   ├── Manga.Infrastructure/       # Layer 3: External services, persistence (depends on Application)
 │   │   ├── Persistence/
@@ -111,7 +116,7 @@ manga-dotnet/
 │   │   │   │                        # DbSets for all 16 entities, soft-delete filter
 │   │   │   ├── Interceptors/
 │   │   │   │   └── AuditableEntityInterceptor.cs # Populates CreatedAt/By, LastModifiedAt/By, DeletedAt
-│   │   │   ├── Configurations/      # 14+ EF Core entity configurations
+│   │   │   ├── Configurations/      # 16+ EF Core entity configurations
 │   │   │   │   ├── MangaSeriesConfiguration.cs
 │   │   │   │   ├── ChapterConfiguration.cs
 │   │   │   │   ├── PersonConfiguration.cs
@@ -131,8 +136,9 @@ manga-dotnet/
 │   │   │   ├── MailKitEmailService.cs            # Real SMTP email sending (prod)
 │   │   │   ├── DevEmailService.cs                # Console email logging (dev)
 │   │   │   ├── LocalFileStorageService.cs        # IFileStorageService impl - stores to uploads/ (Phase 4)
-│   │   │   └── SkiaSharpImageProcessingService.cs # IImageProcessingService impl - resize, convert, thumbnail (Phase 4)
-│   │   └── DependencyInjection.cs   # Registers EF Core, Npgsql, interceptors, repos, auth, file, image services
+│   │   │   ├── SkiaSharpImageProcessingService.cs # IImageProcessingService impl - resize, convert, thumbnail (Phase 4)
+│   │   │   ├── RedisViewTrackingService.cs       # IViewTrackingService impl - HyperLogLog unique viewers, daily aggregation (Phase 5)
+│   │   │   └── DependencyInjection.cs   # Registers EF Core, Npgsql, interceptors, repos, auth, file, image, view tracking services
 │   │
 │   └── Manga.Api/                  # Layer 4: HTTP endpoints, middleware (depends on Application)
 │       ├── Program.cs              # Minimal API host: DI, middleware, endpoint mapping, JWT config
@@ -146,7 +152,10 @@ manga-dotnet/
 │       │   ├── MangaEndpoints.cs         # Manga CRUD & search endpoints (Phase 3)
 │       │   ├── ChapterEndpoints.cs       # Chapter CRUD endpoints (Phase 3)
 │       │   ├── GenreEndpoints.cs         # Genre listing endpoint (Phase 3)
-│       │   └── AttachmentEndpoints.cs    # File upload & serve endpoints (Phase 4)
+│       │   ├── AttachmentEndpoints.cs    # File upload & serve endpoints (Phase 4)
+│       │   └── ViewEndpoints.cs          # View tracking endpoint (Phase 5)
+│       ├── .github/workflows/
+│       │   └── ci.yml                    # CI/CD pipeline: .NET test, build, push (Phase 5)
 │       └── Properties/
 │           └── launchSettings.json       # http:5087, https:7123
 │
@@ -447,9 +456,9 @@ Used for load balancer checks, Kubernetes probes.
 |-------|-------|-----|---------|
 | Domain | 30 | ~450 | 16 entities, 7 enums, base classes, auth interfaces |
 | Application | 35+ | ~650 | 14 handlers (Phase 3), validators, behaviors, auth service |
-| Infrastructure | 24+ | ~500 | AppDbContext, 14+ configs, 4 migrations, token/email services |
-| Api | 9 | ~380 | 7 endpoint groups (auth, manga, chapter, genre), middleware |
-| **Total Source** | **98+** | **~2,000+** | |
+| Infrastructure | 25+ | ~550 | AppDbContext, 16+ configs, 5 migrations, token/email/view tracking services |
+| Api | 10 | ~420 | 8 endpoint groups (auth, manga, chapter, genre, views), middleware |
+| **Total Source** | **105+** | **~2,300+** | |
 | Tests | 3 | ~1,200+ | 160 total tests (48 auth, 55 Phase 3, 57 others) |
 
 ## Database Schema
@@ -467,5 +476,57 @@ Used for load balancer checks, Kubernetes probes.
 
 ---
 
+## View Tracking Architecture (Phase 5)
+
+**Components:**
+- **IViewTrackingService** interface (Application layer abstraction)
+- **RedisViewTrackingService** (Infrastructure layer) — Redis HyperLogLog for unique visitor counting, daily aggregation via EF Core
+- **TrackViewCommand** with handler & validator
+- **ViewEndpoints.cs** — POST /api/views/track (public endpoint)
+- Redis TTL: 30 days per viewing window
+- Anonymous viewers tracked via SHA256(IP + UserAgent)
+- GetTrendingMangaQuery updated to rank by UniqueViewCount
+
+**Performance:**
+- HyperLogLog: ~12KB per 30 days (millions of visitors)
+- ViewStat table: ~1KB per day per manga (unbloated)
+
+---
+
+## CI/CD Pipelines (Phase 5)
+
+### GitHub Actions Workflows
+
+#### Backend (.NET 10 + PostgreSQL 17 + Redis 7)
+**File:** `manga-dotnet/.github/workflows/ci.yml`
+- Trigger: push to main, pull_request
+- Services: PostgreSQL 17, Redis 7 (docker containers)
+- Steps:
+  1. Checkout code
+  2. Setup .NET 10
+  3. Restore NuGet packages
+  4. Build solution
+  5. Run all xUnit tests
+  6. Upload coverage reports
+- Supports future Docker image build
+
+#### Frontend (Node 22 + pnpm)
+**File:** `web-manga/.github/workflows/ci.yml`
+- Trigger: push to main, pull_request
+- Node version: 22
+- Package manager: pnpm (fast, lock-file first)
+- Steps:
+  1. Checkout code
+  2. Setup Node 22
+  3. Setup pnpm
+  4. Install dependencies
+  5. Run ESLint
+  6. TypeScript build check
+  7. Run Vitest unit tests
+  8. Upload coverage reports
+- Fast-fail on lint/build errors
+
+---
+
 **Generated**: 2026-02-16
-**Version**: 1.3 (Phase 3: Manga API Endpoints Completed)
+**Version**: 1.5 (Phase 5: View Tracking & CI/CD Complete)

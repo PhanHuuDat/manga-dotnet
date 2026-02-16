@@ -120,5 +120,9 @@ app.MapMangaEndpoints();
 app.MapChapterEndpoints();
 app.MapGenreEndpoints();
 app.MapAttachmentEndpoints();
+app.MapBookmarkEndpoints();
+app.MapReadingHistoryEndpoints();
+app.MapCommentEndpoints();
+app.MapViewEndpoints();
 
 app.Run();

@@ -41,7 +41,7 @@ public class GetTrendingMangaQueryHandler(IAppDbContext db, IMemoryCache cache)
                         AuthorName = m.Author.Name,
                         CoverUrl = m.Cover != null ? m.Cover.Url : null,
                     } into g
-                    orderby g.Sum(x => x.vs != null ? x.vs.ViewCount : 0) descending
+                    orderby g.Sum(x => x.vs != null ? x.vs.UniqueViewCount : 0) descending
                     select new MangaDto(
                         g.Key.Id,
                         g.Key.Title,
