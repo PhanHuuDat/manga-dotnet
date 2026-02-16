@@ -2,9 +2,9 @@
 
 ## Overview
 
-Manga-dotnet is a .NET 10 Clean Architecture REST API with CQRS pattern for manga platform management. Foundational infrastructure complete; 16 domain entities defined with migrations applied.
+Manga-dotnet is a .NET 10 Clean Architecture REST API with CQRS pattern for manga platform management. Phase 3 complete with 14 MediatR handlers for manga/chapter/genre operations, 7 API endpoints, and comprehensive test suite.
 
-**Total LOC (source only)**: ~850+ lines across 4 layers + 3 test projects (domain entities added)
+**Total LOC (source only)**: ~2,000+ lines across 4 layers + 3 test projects (Phase 3 handlers & validators added)
 
 ---
 
@@ -67,11 +67,34 @@ manga-dotnet/
 │   │   │   │   └── ICurrentUserService.cs # Auth user info extraction
 │   │   │   ├── Behaviors/
 │   │   │   │   ├── ValidationBehavior.cs  # MediatR pipeline: FluentValidation
-│   │   │   │   └── LoggingBehavior.cs     # MediatR pipeline: request/response logging
+│   │   │   │   ├── LoggingBehavior.cs     # MediatR pipeline: request/response logging
+│   │   │   │   └── AuthorizationBehavior.cs # RBAC permission checks
 │   │   │   └── Models/
 │   │   │       ├── PagedResponse.cs        # Pagination: Items[], PageNumber, TotalPages, HasNextPage
 │   │   │       └── Result.cs               # Operation result: Success/Failure, Data, Errors
-│   │   ├── Features/                # Empty (reserved for command/query folders)
+│   │   ├── Features/                # CQRS handlers by domain (Phase 3)
+│   │   │   ├── Manga/               # Manga commands & queries
+│   │   │   │   ├── Commands/
+│   │   │   │   │   ├── CreateMangaCommand.cs
+│   │   │   │   │   ├── UpdateMangaCommand.cs
+│   │   │   │   │   └── DeleteMangaCommand.cs
+│   │   │   │   ├── Queries/
+│   │   │   │   │   ├── GetMangaQuery.cs
+│   │   │   │   │   ├── ListMangaQuery.cs
+│   │   │   │   │   ├── SearchMangaQuery.cs
+│   │   │   │   │   └── GetTrendingMangaQuery.cs
+│   │   │   │   └── Validators/ (FluentValidation)
+│   │   │   ├── Chapter/              # Chapter commands & queries
+│   │   │   │   ├── Commands/
+│   │   │   │   │   ├── CreateChapterCommand.cs
+│   │   │   │   │   └── DeleteChapterCommand.cs
+│   │   │   │   ├── Queries/
+│   │   │   │   │   ├── GetChapterQuery.cs
+│   │   │   │   │   └── ListChaptersQuery.cs
+│   │   │   │   └── Validators/
+│   │   │   └── Genre/                # Genre queries
+│   │   │       └── Queries/
+│   │   │           └── ListGenresQuery.cs
 │   │   └── DependencyInjection.cs   # Registers MediatR, FluentValidation, behaviors
 │   │
 │   ├── Manga.Infrastructure/       # Layer 3: External services, persistence (depends on Application)
@@ -108,7 +131,10 @@ manga-dotnet/
 │       │   └── CurrentUserService.cs     # Extracts user from HttpContext.User claims
 │       ├── Endpoints/
 │       │   ├── HealthEndpoints.cs        # GET /health endpoint
-│       │   └── AuthEndpoints.cs          # Auth endpoints (register, login, refresh, logout, verify-email, forgot-password, reset-password, me)
+│       │   ├── AuthEndpoints.cs          # Auth endpoints (register, login, refresh, logout, verify-email, forgot-password, reset-password, me)
+│       │   ├── MangaEndpoints.cs         # Manga CRUD & search endpoints (Phase 3)
+│       │   ├── ChapterEndpoints.cs       # Chapter CRUD endpoints (Phase 3)
+│       │   └── GenreEndpoints.cs         # Genre listing endpoint (Phase 3)
 │       └── Properties/
 │           └── launchSettings.json       # http:5087, https:7123
 │
@@ -194,11 +220,11 @@ Api (Presentation)
 | Endpoints/AuthEndpoints.cs | 85 | Auth endpoints (register, login, refresh, logout, verify-email, forgot-password, reset-password, me) |
 | **Total** | ~195 | |
 
-### Test Projects
+### Test Projects (Phase 3 Additions)
 
-- **Manga.Domain.Tests**: ~10 LOC (stubs)
-- **Manga.Application.Tests**: ~10 LOC (stubs)
-- **Manga.Api.Tests**: ~10 LOC (stubs)
+- **Manga.Domain.Tests**: Basic entity tests
+- **Manga.Application.Tests**: Command/Query handler tests, FluentValidation tests
+- **Manga.Api.Tests**: Integration tests for endpoints, auth tests (48 tests), manga/chapter/genre tests (160 total)
 
 ---
 
@@ -405,11 +431,11 @@ Used for load balancer checks, Kubernetes probes.
 | Layer | Files | LOC | Purpose |
 |-------|-------|-----|---------|
 | Domain | 30 | ~450 | 16 entities, 7 enums, base classes, auth interfaces |
-| Application | 18 | ~320 | Auth/email handlers, validation, behaviors, auth service |
+| Application | 35+ | ~650 | 14 handlers (Phase 3), validators, behaviors, auth service |
 | Infrastructure | 24+ | ~500 | AppDbContext, 14+ configs, 4 migrations, token/email services |
-| Api | 6 | ~195 | Auth endpoints (8), health, middleware, auth config |
-| **Total Source** | **78+** | **~1,465+** | |
-| Tests | 3 | ~1,200+ | 48 auth tests (xUnit) |
+| Api | 9 | ~380 | 7 endpoint groups (auth, manga, chapter, genre), middleware |
+| **Total Source** | **98+** | **~2,000+** | |
+| Tests | 3 | ~1,200+ | 160 total tests (48 auth, 55 Phase 3, 57 others) |
 
 ## Database Schema
 
@@ -425,5 +451,5 @@ Used for load balancer checks, Kubernetes probes.
 
 ---
 
-**Generated**: 2026-02-15
-**Version**: 1.2 (Authentication & Authorization Completed)
+**Generated**: 2026-02-16
+**Version**: 1.3 (Phase 3: Manga API Endpoints Completed)

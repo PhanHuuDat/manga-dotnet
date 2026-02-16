@@ -23,6 +23,7 @@ builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddMemoryCache();
 
 // JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("Jwt").Get<JwtSettings>()!;
@@ -95,5 +96,8 @@ app.UseAuthorization();
 // Endpoints
 app.MapHealthEndpoints();
 app.MapAuthEndpoints();
+app.MapMangaEndpoints();
+app.MapChapterEndpoints();
+app.MapGenreEndpoints();
 
 app.Run();

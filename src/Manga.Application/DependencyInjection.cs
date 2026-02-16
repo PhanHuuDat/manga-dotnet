@@ -1,6 +1,7 @@
 using System.Reflection;
 using FluentValidation;
 using Manga.Application.Common.Behaviors;
+using Manga.Application.Common.Services;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -24,6 +25,7 @@ public static class DependencyInjection
         });
 
         services.AddValidatorsFromAssembly(assembly);
+        services.AddScoped<IUserAuthorizationService, UserAuthorizationService>();
 
         return services;
     }
