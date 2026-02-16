@@ -7,6 +7,7 @@ using Manga.Application.Auth.Commands.ResetPassword;
 using Manga.Application.Auth.Commands.VerifyEmail;
 using Manga.Application.Auth.Queries.GetCurrentUser;
 using MediatR;
+using Microsoft.Extensions.Hosting;
 using RefreshTokenCommand = Manga.Application.Auth.Commands.RefreshToken.RefreshTokenCommand;
 
 namespace Manga.Api.Endpoints;
@@ -39,19 +40,19 @@ public static class AuthEndpoints
     }
 
     private static async Task<IResult> LoginAsync(
-        LoginCommand command, ISender sender, HttpContext http, IConfiguration config)
+        LoginCommand command, ISender sender, HttpContext http, IHostEnvironment env)
     {
         var result = await sender.Send(command);
         if (!result.Succeeded)
             return Results.UnprocessableEntity(new { errors = result.Errors });
 
         var data = result.Value!;
-        SetRefreshCookie(http, data.RawRefreshToken, data.RefreshTokenExpiresAt, config);
+        SetRefreshCookie(http, data.RawRefreshToken, data.RefreshTokenExpiresAt, env);
         return Results.Ok(data.Auth);
     }
 
     private static async Task<IResult> RefreshAsync(
-        ISender sender, HttpContext http, IConfiguration config)
+        ISender sender, HttpContext http, IHostEnvironment env)
     {
         var rawToken = http.Request.Cookies[RefreshCookieName];
         if (string.IsNullOrEmpty(rawToken))
@@ -60,17 +61,17 @@ public static class AuthEndpoints
         var result = await sender.Send(new RefreshTokenCommand(rawToken));
         if (!result.Succeeded)
         {
-            ClearRefreshCookie(http);
+            ClearRefreshCookie(http, env);
             return Results.Unauthorized();
         }
 
         var data = result.Value!;
-        SetRefreshCookie(http, data.RawRefreshToken, data.RefreshTokenExpiresAt, config);
+        SetRefreshCookie(http, data.RawRefreshToken, data.RefreshTokenExpiresAt, env);
         return Results.Ok(data.Auth);
     }
 
     private static async Task<IResult> LogoutAsync(
-        ISender sender, HttpContext http)
+        ISender sender, HttpContext http, IHostEnvironment env)
     {
         var jti = http.User.FindFirstValue("jti") ?? string.Empty;
         var expClaim = http.User.FindFirstValue("exp");
@@ -79,7 +80,7 @@ public static class AuthEndpoints
             : DateTimeOffset.UtcNow;
 
         await sender.Send(new LogoutCommand(jti, expiry));
-        ClearRefreshCookie(http);
+        ClearRefreshCookie(http, env);
         return Results.NoContent();
     }
 
@@ -111,25 +112,29 @@ public static class AuthEndpoints
     }
 
     private static void SetRefreshCookie(
-        HttpContext http, string token, DateTimeOffset expires, IConfiguration config)
+        HttpContext http, string token, DateTimeOffset expires, IHostEnvironment env)
     {
-        var isDev = config.GetValue<bool>("Email:UseDev"); // proxy for dev env
+        // Dev: SameSite=None because frontend (http) and backend (https) differ in scheme,
+        // which Chrome treats as cross-site ("schemeful same-site").
+        var isDev = env.IsDevelopment();
         http.Response.Cookies.Append(RefreshCookieName, token, new CookieOptions
         {
             HttpOnly = true,
             Secure = true,
-            SameSite = isDev ? SameSiteMode.Lax : SameSiteMode.Strict,
+            SameSite = isDev ? SameSiteMode.None : SameSiteMode.Strict,
             Path = "/api/auth",
             Expires = expires,
         });
     }
 
-    private static void ClearRefreshCookie(HttpContext http)
+    private static void ClearRefreshCookie(HttpContext http, IHostEnvironment env)
     {
+        var isDev = env.IsDevelopment();
         http.Response.Cookies.Delete(RefreshCookieName, new CookieOptions
         {
             HttpOnly = true,
             Secure = true,
+            SameSite = isDev ? SameSiteMode.None : SameSiteMode.Strict,
             Path = "/api/auth",
         });
     }
