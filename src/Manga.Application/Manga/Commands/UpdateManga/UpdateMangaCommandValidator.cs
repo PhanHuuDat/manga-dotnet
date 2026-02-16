@@ -20,6 +20,7 @@ public class UpdateMangaCommandValidator : AbstractValidator<UpdateMangaCommand>
         RuleFor(x => x.GenreIds)
             .Must(ids => ids!.Count > 0).WithMessage("Genre list cannot be empty.")
             .Must(ids => ids!.Count <= 10).WithMessage("Cannot assign more than 10 genres.")
+            .Must(ids => ids!.Distinct().Count() == ids.Count).WithMessage("Duplicate genre IDs are not allowed.")
             .When(x => x.GenreIds is not null);
 
         RuleFor(x => x.PublishedYear)

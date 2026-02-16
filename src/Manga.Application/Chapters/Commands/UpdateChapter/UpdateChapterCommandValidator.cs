@@ -16,6 +16,7 @@ public class UpdateChapterCommandValidator : AbstractValidator<UpdateChapterComm
         RuleFor(x => x.PageImageIds)
             .Must(ids => ids!.Count > 0).WithMessage("Page list cannot be empty.")
             .Must(ids => ids!.Count <= 500).WithMessage("Cannot exceed 500 pages per chapter.")
+            .Must(ids => ids!.Distinct().Count() == ids.Count).WithMessage("Duplicate page image IDs are not allowed.")
             .When(x => x.PageImageIds is not null);
     }
 }

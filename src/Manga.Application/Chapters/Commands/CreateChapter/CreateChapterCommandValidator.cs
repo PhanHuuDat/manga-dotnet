@@ -18,6 +18,7 @@ public class CreateChapterCommandValidator : AbstractValidator<CreateChapterComm
 
         RuleFor(x => x.PageImageIds)
             .NotEmpty().WithMessage("At least one page image is required.")
-            .Must(ids => ids.Count <= 500).WithMessage("Cannot exceed 500 pages per chapter.");
+            .Must(ids => ids.Count <= 500).WithMessage("Cannot exceed 500 pages per chapter.")
+            .Must(ids => ids.Distinct().Count() == ids.Count).WithMessage("Duplicate page image IDs are not allowed.");
     }
 }

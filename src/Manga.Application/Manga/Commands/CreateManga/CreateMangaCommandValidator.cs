@@ -18,7 +18,8 @@ public class CreateMangaCommandValidator : AbstractValidator<CreateMangaCommand>
 
         RuleFor(x => x.GenreIds)
             .NotEmpty().WithMessage("At least one genre is required.")
-            .Must(ids => ids.Count <= 10).WithMessage("Cannot assign more than 10 genres.");
+            .Must(ids => ids.Count <= 10).WithMessage("Cannot assign more than 10 genres.")
+            .Must(ids => ids.Distinct().Count() == ids.Count).WithMessage("Duplicate genre IDs are not allowed.");
 
         RuleFor(x => x.PublishedYear)
             .InclusiveBetween(1900, 2100)
