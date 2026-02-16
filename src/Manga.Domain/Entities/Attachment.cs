@@ -31,4 +31,16 @@ public class Attachment : AuditableEntity
 
     /// <summary>Internal storage path for thumbnail.</summary>
     public string? ThumbnailStoragePath { get; set; }
+
+    /// <summary>
+    /// Fisher-Yates shuffle seed used to scramble this image.
+    /// Null means the image is not scrambled (legacy or non-chapter-page).
+    /// </summary>
+    public int? ScrambleSeed { get; set; }
+
+    /// <summary>
+    /// Grid dimension used for tile scrambling (e.g. 8 means 8x8 = 64 tiles).
+    /// Null means the image is not scrambled.
+    /// </summary>
+    public int? ScrambleGridSize { get; set; }
 }

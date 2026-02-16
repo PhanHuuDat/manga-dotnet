@@ -56,6 +56,82 @@ public class GetChapterQueryHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ScrambledPage_IncludesScrambleMetadata()
+    {
+        using var db = TestDbContextFactory.Create();
+        var author = new Person { Name = "Author" };
+        db.Persons.Add(author);
+        var manga = new MangaSeries { Title = "Test", AuthorId = author.Id };
+        db.MangaSeries.Add(manga);
+        var image = new Attachment
+        {
+            FileName = "p1.webp",
+            StoragePath = "/p",
+            Url = "https://example.com/p1.webp",
+            ContentType = "image/webp",
+            ScrambleSeed = 42,
+            ScrambleGridSize = 8,
+        };
+        db.Attachments.Add(image);
+        var chapter = new Chapter
+        {
+            MangaSeriesId = manga.Id,
+            ChapterNumber = 1,
+            Slug = "ch-1",
+            Pages = 1,
+            PublishedAt = DateTimeOffset.UtcNow,
+        };
+        db.Chapters.Add(chapter);
+        db.ChapterPages.Add(new ChapterPage { ChapterId = chapter.Id, PageNumber = 1, ImageId = image.Id });
+        await db.SaveChangesAsync();
+
+        var handler = new GetChapterQueryHandler(db);
+        var result = await handler.Handle(new GetChapterQuery(chapter.Id), CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        var page = result.Value!.Pages[0];
+        Assert.Equal(42, page.ScrambleSeed);
+        Assert.Equal(8, page.ScrambleGridSize);
+    }
+
+    [Fact]
+    public async Task Handle_UnscrambledPage_NullScrambleFields()
+    {
+        using var db = TestDbContextFactory.Create();
+        var author = new Person { Name = "Author" };
+        db.Persons.Add(author);
+        var manga = new MangaSeries { Title = "Test", AuthorId = author.Id };
+        db.MangaSeries.Add(manga);
+        var image = new Attachment
+        {
+            FileName = "p1.jpg",
+            StoragePath = "/p",
+            Url = "https://example.com/p1.jpg",
+            ContentType = "image/jpeg",
+        };
+        db.Attachments.Add(image);
+        var chapter = new Chapter
+        {
+            MangaSeriesId = manga.Id,
+            ChapterNumber = 1,
+            Slug = "ch-1",
+            Pages = 1,
+            PublishedAt = DateTimeOffset.UtcNow,
+        };
+        db.Chapters.Add(chapter);
+        db.ChapterPages.Add(new ChapterPage { ChapterId = chapter.Id, PageNumber = 1, ImageId = image.Id });
+        await db.SaveChangesAsync();
+
+        var handler = new GetChapterQueryHandler(db);
+        var result = await handler.Handle(new GetChapterQuery(chapter.Id), CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        var page = result.Value!.Pages[0];
+        Assert.Null(page.ScrambleSeed);
+        Assert.Null(page.ScrambleGridSize);
+    }
+
+    [Fact]
     public async Task Handle_PagesOrderedByNumber()
     {
         using var db = TestDbContextFactory.Create();

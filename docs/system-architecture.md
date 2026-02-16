@@ -45,6 +45,7 @@ Manga-dotnet follows **Clean Architecture** with strict layer separation and **C
 │  │  - IDateTimeProvider (testable clock)               │ │
 │  │  - ICurrentUserService (auth info)                  │ │
 │  │  - IRepository<T> (generic CRUD)                    │ │
+│  │  - IImageScrambleService (8x8 tile scrambling)      │ │
 │  └─────────────────────────────────────────────────────┘ │
 └────────────────────────────┬─────────────────────────────┘
                              │ depends on
@@ -68,6 +69,8 @@ Manga-dotnet follows **Clean Architecture** with strict layer separation and **C
 │  │  Interceptors & Services                            │ │
 │  │  - AuditableEntityInterceptor (auto-audit)          │ │
 │  │  - DateTimeProvider (UTC clock)                     │ │
+│  │  - SkiaSharpImageScrambleService (8x8 tile shuffle) │ │
+│  │  - Mulberry32 PRNG (cross-platform descrambling)    │ │
 │  └─────────────────────────────────────────────────────┘ │
 └────────────────────────────┬─────────────────────────────┘
                              │ depends on
@@ -764,7 +767,8 @@ Client memory access token becomes invalid on next API call (401)
 5. **Email Verification**: Tokens expire, one-time use
 6. **Password Reset**: Invalidates all sessions
 7. **Rate Limiting**: (Future, placeholder in code)
-8. **OWASP Compliance**: Input validation, output encoding, CSRF (SameSite)
+8. **Image Scrambling**: 8x8 tile-based Fisher-Yates shuffle at upload time (Phase 6), prevents visual leakage of chapter pages
+9. **OWASP Compliance**: Input validation, output encoding, CSRF (SameSite), path traversal guards
 
 ---
 

@@ -30,7 +30,8 @@ public class GetChapterQueryHandler(IAppDbContext db)
             chapter.Slug,
             chapter.PublishedAt,
             chapter.ChapterPages.Select(p => new ChapterPageDto(
-                p.Id, p.PageNumber, p.Image.Url)).ToList(),
+                p.Id, p.PageNumber, p.Image.Url,
+                p.Image.ScrambleSeed, p.Image.ScrambleGridSize)).ToList(),
             chapter.Views,
             chapter.CreatedAt);
 

@@ -18,4 +18,6 @@ public record ChapterDetailDto(
 public record ChapterPageDto(
     Guid Id,
     int PageNumber,
-    string ImageUrl);
+    string ImageUrl,
+    int? ScrambleSeed,
+    int? ScrambleGridSize);

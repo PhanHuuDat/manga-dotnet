@@ -40,6 +40,9 @@ public class AttachmentConfiguration : IEntityTypeConfiguration<Attachment>
         builder.Property(a => a.ThumbnailStoragePath)
             .HasMaxLength(500);
 
+        builder.Property(a => a.ScrambleSeed);
+        builder.Property(a => a.ScrambleGridSize);
+
         builder.HasIndex(a => a.Type);
     }
 }

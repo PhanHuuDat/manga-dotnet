@@ -71,6 +71,7 @@ public static class DependencyInjection
         // Image processing
         services.Configure<ImageProcessingSettings>(configuration.GetSection(ImageProcessingSettings.SectionName));
         services.AddSingleton<IImageProcessingService, SkiaSharpImageProcessingService>();
+        services.AddSingleton<IImageScrambleService, SkiaSharpImageScrambleService>();
 
         // View tracking (Redis HyperLogLog)
         services.AddSingleton<IViewTrackingService, RedisViewTrackingService>();

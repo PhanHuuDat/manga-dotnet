@@ -2,7 +2,7 @@
 
 ## Overview
 
-Manga-dotnet is a .NET 10 Clean Architecture REST API with CQRS pattern for manga platform management. Phase 4 complete with file upload & media. Phase 5 complete with view tracking and CI/CD pipelines. Total 17 MediatR handlers for manga/chapter/genre/attachment/view operations, 11 API endpoints, file storage services, image processing pipeline, Redis-backed view analytics, and GitHub Actions CI/CD.
+Manga-dotnet is a .NET 10 Clean Architecture REST API with CQRS pattern for manga platform management. Phase 6 complete with file upload, view tracking, CI/CD pipelines, and chapter page anti-leak scrambling. Total 17 MediatR handlers for manga/chapter/genre/attachment/view operations, 11 API endpoints, file storage services, image processing + scrambling pipeline, Redis-backed view analytics, and GitHub Actions CI/CD.
 
 **Total LOC (source only)**: ~2,700+ lines across 4 layers + 3 test projects (Phase 4-5: file upload, view tracking, CI/CD pipelines added)
 
@@ -120,7 +120,7 @@ manga-dotnet/
 │   │   │   │   ├── MangaSeriesConfiguration.cs
 │   │   │   │   ├── ChapterConfiguration.cs
 │   │   │   │   ├── PersonConfiguration.cs
-│   │   │   │   ├── AttachmentConfiguration.cs (includes ThumbnailUrl, ThumbnailStoragePath)
+│   │   │   │   ├── AttachmentConfiguration.cs (ThumbnailUrl, ThumbnailStoragePath, ScrambleSeed, ScrambleGridSize)
 │   │   │   │   ├── ViewStatConfiguration.cs (composite PK: TargetType, TargetId, ViewDate)
 │   │   │   │   └── ...other entity configs
 │   │   │   ├── Migrations/
@@ -137,8 +137,9 @@ manga-dotnet/
 │   │   │   ├── DevEmailService.cs                # Console email logging (dev)
 │   │   │   ├── LocalFileStorageService.cs        # IFileStorageService impl - stores to uploads/ (Phase 4)
 │   │   │   ├── SkiaSharpImageProcessingService.cs # IImageProcessingService impl - resize, convert, thumbnail (Phase 4)
+│   │   │   ├── SkiaSharpImageScrambleService.cs  # IImageScrambleService impl - 8x8 Fisher-Yates scrambling (Phase 6)
 │   │   │   ├── RedisViewTrackingService.cs       # IViewTrackingService impl - HyperLogLog unique viewers, daily aggregation (Phase 5)
-│   │   │   └── DependencyInjection.cs   # Registers EF Core, Npgsql, interceptors, repos, auth, file, image, view tracking services
+│   │   │   └── DependencyInjection.cs   # Registers EF Core, Npgsql, interceptors, repos, auth, file, image, scramble, view tracking services
 │   │
 │   └── Manga.Api/                  # Layer 4: HTTP endpoints, middleware (depends on Application)
 │       ├── Program.cs              # Minimal API host: DI, middleware, endpoint mapping, JWT config
@@ -467,12 +468,13 @@ Used for load balancer checks, Kubernetes probes.
 - **Auditable** (14): MangaSeries, Chapter, ChapterPage, AlternativeTitle, Genre, MangaGenre, Comment, CommentReaction, Bookmark, ReadingHistory, User, Person, Attachment
 - **Non-Auditable** (1): ViewStat (performance-optimized for analytics)
 
-**Migrations**: 5 applied
+**Migrations**: 6 applied
 1. InitialSchema (Feb 13) — Core entities
 2. AddPersonAndAttachment (Feb 13) — Authors/artists + file storage
 3. AddViewStats (Feb 15) — Daily view aggregation
 4. AddAuthEntities (Feb 15) — RefreshToken entity, auth-specific indexes
 5. AddAttachmentThumbnails (Feb 16) — ThumbnailUrl, ThumbnailStoragePath for media thumbnails
+6. AddAttachmentScrambleFields (Feb 17) — ScrambleSeed, ScrambleGridSize for anti-leak protection
 
 ---
 
@@ -490,6 +492,22 @@ Used for load balancer checks, Kubernetes probes.
 **Performance:**
 - HyperLogLog: ~12KB per 30 days (millions of visitors)
 - ViewStat table: ~1KB per day per manga (unbloated)
+
+## Chapter Page Anti-Leak Scrambling (Phase 6)
+
+**Components:**
+- **IImageScrambleService** interface (Application layer abstraction)
+- **SkiaSharpImageScrambleService** (Infrastructure layer) — 8x8 tile-based Fisher-Yates shuffle using mulberry32 PRNG
+- **UploadAttachmentCommand** updated to scramble chapter pages on upload
+- **Attachment entity** new fields: `ScrambleSeed` (int), `ScrambleGridSize` (int, default 8)
+- **AddAttachmentScrambleFields** migration adds nullable columns for backward compatibility
+- Scrambling only applies to chapter page attachments, not covers/avatars/banners
+- Mulberry32 PRNG seed ensures deterministic descrambling on frontend
+
+**Security:**
+- Prevents visual spoiler leakage via thumbnail caching
+- Scramled images unreadable without seed + PRNG algorithm
+- Transparent to authorized users via ScrambledPageCanvas component
 
 ---
 
@@ -528,5 +546,5 @@ Used for load balancer checks, Kubernetes probes.
 
 ---
 
-**Generated**: 2026-02-16
-**Version**: 1.5 (Phase 5: View Tracking & CI/CD Complete)
+**Generated**: 2026-02-17
+**Version**: 1.6 (Phase 6: Chapter Page Anti-Leak Scrambling Complete)
