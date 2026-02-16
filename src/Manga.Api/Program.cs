@@ -7,6 +7,7 @@ using Manga.Application.Common.Interfaces;
 using Manga.Infrastructure;
 using Manga.Infrastructure.Auth;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.FileProviders;
@@ -72,11 +73,12 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Seed data (development only)
+// Auto-migrate and seed data (development only)
 if (app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();
     var context = scope.ServiceProvider.GetRequiredService<Manga.Infrastructure.Persistence.AppDbContext>();
+    await context.Database.MigrateAsync();
     var hasher = scope.ServiceProvider.GetRequiredService<Manga.Domain.Interfaces.IPasswordHasher>();
     await Manga.Infrastructure.Persistence.Seeders.AuthSeeder.SeedAsync(context, hasher);
 }
@@ -93,7 +95,10 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference(); // /scalar/v1
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 // Ensure uploads directory exists for static file serving
 var uploadsPath = Path.Combine(builder.Environment.ContentRootPath, "uploads");
 Directory.CreateDirectory(uploadsPath);
@@ -124,5 +129,6 @@ app.MapBookmarkEndpoints();
 app.MapReadingHistoryEndpoints();
 app.MapCommentEndpoints();
 app.MapViewEndpoints();
+app.MapUserEndpoints();
 
 app.Run();

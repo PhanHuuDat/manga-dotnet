@@ -20,6 +20,15 @@ public class ListMangaQueryHandler(IAppDbContext db)
         // No Include() needed — Select() projection generates JOINs automatically
         IQueryable<MangaSeries> query = db.MangaSeries;
 
+        // Text search on title/author
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var term = request.Search.Trim().ToLower();
+            query = query.Where(m =>
+                m.Title.ToLower().Contains(term) ||
+                m.Author.Name.ToLower().Contains(term));
+        }
+
         // Filter by genre
         if (request.GenreId.HasValue)
         {

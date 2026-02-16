@@ -1,0 +1,18 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0
+
+WORKDIR /app
+
+# Copy project files for restore
+COPY src/Manga.Domain/Manga.Domain.csproj src/Manga.Domain/
+COPY src/Manga.Application/Manga.Application.csproj src/Manga.Application/
+COPY src/Manga.Infrastructure/Manga.Infrastructure.csproj src/Manga.Infrastructure/
+COPY src/Manga.Api/Manga.Api.csproj src/Manga.Api/
+
+RUN dotnet restore src/Manga.Api/Manga.Api.csproj
+
+# Copy everything else
+COPY . .
+
+EXPOSE 5087
+
+CMD ["dotnet", "watch", "run", "--project", "src/Manga.Api", "--urls", "http://0.0.0.0:5087"]

@@ -38,14 +38,15 @@ public static class MangaEndpoints
 
     private static async Task<IResult> ListMangaAsync(
         int? page, int? pageSize, Guid? genreId, SeriesStatus? status,
-        MangaSortBy? sortBy, ISender sender)
+        MangaSortBy? sortBy, string? search, ISender sender)
     {
         var query = new ListMangaQuery(
             page ?? 1,
             pageSize ?? 20,
             genreId,
             status,
-            sortBy ?? MangaSortBy.Latest);
+            sortBy ?? MangaSortBy.Latest,
+            search);
 
         var result = await sender.Send(query);
         return result.Succeeded

@@ -13,7 +13,8 @@ public record ListMangaQuery(
     int PageSize = 20,
     Guid? GenreId = null,
     SeriesStatus? Status = null,
-    MangaSortBy SortBy = MangaSortBy.Latest) : IRequest<Result<PagedResponse<MangaDto>>>;
+    MangaSortBy SortBy = MangaSortBy.Latest,
+    string? Search = null) : IRequest<Result<PagedResponse<MangaDto>>>;
 
 public enum MangaSortBy
 {
