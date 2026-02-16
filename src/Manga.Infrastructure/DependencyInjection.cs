@@ -66,11 +66,11 @@ public static class DependencyInjection
 
         // File storage
         services.Configure<FileStorageSettings>(configuration.GetSection(FileStorageSettings.SectionName));
-        services.AddScoped<IFileStorageService, LocalFileStorageService>();
+        services.AddSingleton<IFileStorageService, LocalFileStorageService>();
 
         // Image processing
         services.Configure<ImageProcessingSettings>(configuration.GetSection(ImageProcessingSettings.SectionName));
-        services.AddScoped<IImageProcessingService, SkiaSharpImageProcessingService>();
+        services.AddSingleton<IImageProcessingService, SkiaSharpImageProcessingService>();
 
         return services;
     }

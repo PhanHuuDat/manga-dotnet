@@ -17,7 +17,9 @@ public class LocalFileStorageService(IOptions<FileStorageSettings> options) : IF
         var extension = Path.GetExtension(fileName).ToLowerInvariant();
         var storedName = $"{Guid.NewGuid()}{extension}";
         var relativePath = Path.Combine(subfolder, storedName);
-        var fullPath = Path.Combine(_settings.BasePath, relativePath);
+        var fullPath = Path.GetFullPath(Path.Combine(_settings.BasePath, relativePath));
+        if (!fullPath.StartsWith(Path.GetFullPath(_settings.BasePath), StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Invalid storage path.");
 
         var directory = Path.GetDirectoryName(fullPath)!;
         Directory.CreateDirectory(directory);

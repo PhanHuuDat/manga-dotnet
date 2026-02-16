@@ -16,24 +16,30 @@ public class SkiaSharpImageProcessingService(
     public Task<ProcessedImageResult> ProcessAsync(
         Stream inputStream, AttachmentType type, CancellationToken ct = default)
     {
-        using var original = SKBitmap.Decode(inputStream)
-            ?? throw new InvalidOperationException("Failed to decode image.");
-
-        var (maxW, maxH, crop) = GetProcessedDimensions(type);
-        using var processed = ResizeImage(original, maxW, maxH, crop);
-        var processedStream = EncodeToWebP(processed, _settings.WebPQuality);
-
-        MemoryStream? thumbnailStream = null;
-        var thumbDims = GetThumbnailDimensions(type);
-        if (thumbDims is not null)
+        return Task.Run(() =>
         {
-            var (thumbW, thumbH) = thumbDims.Value;
-            using var thumbnail = ResizeImage(original, thumbW, thumbH, false);
-            thumbnailStream = EncodeToWebP(thumbnail, _settings.ThumbnailQuality);
-        }
+            using var original = SKBitmap.Decode(inputStream)
+                ?? throw new InvalidOperationException("Failed to decode image.");
 
-        return Task.FromResult(new ProcessedImageResult(
-            processedStream, "image/webp", thumbnailStream));
+            // Guard against extremely large images (max 8192x8192)
+            if (original.Width > 8192 || original.Height > 8192)
+                throw new InvalidOperationException("Image dimensions exceed maximum allowed (8192x8192).");
+
+            var (maxW, maxH, crop) = GetProcessedDimensions(type);
+            using var processed = ResizeImage(original, maxW, maxH, crop);
+            var processedStream = EncodeToWebP(processed, _settings.WebPQuality);
+
+            MemoryStream? thumbnailStream = null;
+            var thumbDims = GetThumbnailDimensions(type);
+            if (thumbDims is not null)
+            {
+                var (thumbW, thumbH) = thumbDims.Value;
+                using var thumbnail = ResizeImage(original, thumbW, thumbH, false);
+                thumbnailStream = EncodeToWebP(thumbnail, _settings.ThumbnailQuality);
+            }
+
+            return new ProcessedImageResult(processedStream, "image/webp", thumbnailStream);
+        }, ct);
     }
 
     private static SKBitmap ResizeImage(SKBitmap source, int maxWidth, int maxHeight, bool crop)
@@ -119,7 +125,8 @@ public class SkiaSharpImageProcessingService(
     private static MemoryStream EncodeToWebP(SKBitmap bitmap, int quality)
     {
         using var image = SKImage.FromBitmap(bitmap);
-        var data = image.Encode(SKEncodedImageFormat.Webp, quality);
+        var data = image.Encode(SKEncodedImageFormat.Webp, quality)
+            ?? throw new InvalidOperationException("Failed to encode image to WebP.");
         var ms = new MemoryStream();
         data.SaveTo(ms);
         ms.Position = 0;
