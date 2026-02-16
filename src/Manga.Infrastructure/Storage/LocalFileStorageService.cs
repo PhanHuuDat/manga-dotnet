@@ -34,7 +34,9 @@ public class LocalFileStorageService(IOptions<FileStorageSettings> options) : IF
 
     public Task DeleteAsync(string storagePath, CancellationToken ct = default)
     {
-        var fullPath = Path.Combine(_settings.BasePath, storagePath);
+        var fullPath = Path.GetFullPath(Path.Combine(_settings.BasePath, storagePath));
+        if (!fullPath.StartsWith(Path.GetFullPath(_settings.BasePath), StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Invalid storage path.");
         if (File.Exists(fullPath))
             File.Delete(fullPath);
         return Task.CompletedTask;
@@ -42,7 +44,9 @@ public class LocalFileStorageService(IOptions<FileStorageSettings> options) : IF
 
     public Task<Stream?> GetAsync(string storagePath, CancellationToken ct = default)
     {
-        var fullPath = Path.Combine(_settings.BasePath, storagePath);
+        var fullPath = Path.GetFullPath(Path.Combine(_settings.BasePath, storagePath));
+        if (!fullPath.StartsWith(Path.GetFullPath(_settings.BasePath), StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Invalid storage path.");
         if (!File.Exists(fullPath))
             return Task.FromResult<Stream?>(null);
 

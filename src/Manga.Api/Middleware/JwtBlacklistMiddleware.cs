@@ -14,16 +14,34 @@ public class JwtBlacklistMiddleware(RequestDelegate next)
         if (context.User.Identity?.IsAuthenticated == true)
         {
             var jti = context.User.FindFirstValue("jti");
-            if (jti is not null && await blacklist.IsBlacklistedAsync(jti))
+            if (jti is not null)
             {
-                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                await context.Response.WriteAsJsonAsync(new ProblemDetails
+                try
                 {
-                    Status = 401,
-                    Title = "Unauthorized",
-                    Detail = "Token has been revoked.",
-                });
-                return;
+                    if (await blacklist.IsBlacklistedAsync(jti))
+                    {
+                        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                        await context.Response.WriteAsJsonAsync(new ProblemDetails
+                        {
+                            Status = 401,
+                            Title = "Unauthorized",
+                            Detail = "Token has been revoked.",
+                        });
+                        return;
+                    }
+                }
+                catch (Exception)
+                {
+                    // Redis unavailable — fail closed (reject request)
+                    context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+                    await context.Response.WriteAsJsonAsync(new ProblemDetails
+                    {
+                        Status = 503,
+                        Title = "Service Unavailable",
+                        Detail = "Authentication service temporarily unavailable.",
+                    });
+                    return;
+                }
             }
         }
 

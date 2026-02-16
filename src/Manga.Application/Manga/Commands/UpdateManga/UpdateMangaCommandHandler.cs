@@ -72,7 +72,15 @@ public class UpdateMangaCommandHandler(
             }
         }
 
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Result.Failure("Manga was modified by another user. Please refresh and try again.");
+        }
+
         return Result.Success();
     }
 }

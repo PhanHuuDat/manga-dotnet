@@ -2,6 +2,7 @@ using Manga.Domain.Entities;
 using Manga.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace Manga.Infrastructure.Persistence.Configurations;
 
@@ -73,5 +74,11 @@ public class MangaSeriesConfiguration : IEntityTypeConfiguration<MangaSeries>
         builder.HasIndex(m => m.CreatedAt).IsDescending();
         builder.HasIndex(m => m.AuthorId);
         builder.HasIndex(m => m.ArtistId);
+
+        // Optimistic concurrency using PostgreSQL xmin system column
+        builder.Property<uint>("xmin")
+            .HasColumnType("xid")
+            .ValueGeneratedOnAddOrUpdate()
+            .IsConcurrencyToken();
     }
 }
