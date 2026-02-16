@@ -2,9 +2,9 @@
 
 ## Overview
 
-Manga-dotnet is a .NET 10 Clean Architecture REST API with CQRS pattern for manga platform management. Phase 3 complete with 14 MediatR handlers for manga/chapter/genre operations, 7 API endpoints, and comprehensive test suite.
+Manga-dotnet is a .NET 10 Clean Architecture REST API with CQRS pattern for manga platform management. Phase 4 complete with 16 MediatR handlers for manga/chapter/genre/attachment operations, 10 API endpoints, file storage services, and image processing pipeline.
 
-**Total LOC (source only)**: ~2,000+ lines across 4 layers + 3 test projects (Phase 3 handlers & validators added)
+**Total LOC (source only)**: ~2,500+ lines across 4 layers + 3 test projects (Phase 4 file upload & media services added)
 
 ---
 
@@ -62,17 +62,19 @@ manga-dotnet/
 │   ├── Manga.Application/         # Layer 2: Use cases, CQRS handlers (depends on Domain)
 │   │   ├── Common/
 │   │   │   ├── Interfaces/
-│   │   │   │   ├── IAppDbContext.cs       # EF Core DbContext abstraction
-│   │   │   │   ├── IDateTimeProvider.cs   # Testable clock service
-│   │   │   │   └── ICurrentUserService.cs # Auth user info extraction
+│   │   │   │   ├── IAppDbContext.cs         # EF Core DbContext abstraction
+│   │   │   │   ├── IDateTimeProvider.cs     # Testable clock service
+│   │   │   │   ├── ICurrentUserService.cs   # Auth user info extraction
+│   │   │   │   ├── IFileStorageService.cs   # File storage abstraction
+│   │   │   │   └── IImageProcessingService.cs # Image processing abstraction
 │   │   │   ├── Behaviors/
-│   │   │   │   ├── ValidationBehavior.cs  # MediatR pipeline: FluentValidation
-│   │   │   │   ├── LoggingBehavior.cs     # MediatR pipeline: request/response logging
+│   │   │   │   ├── ValidationBehavior.cs    # MediatR pipeline: FluentValidation
+│   │   │   │   ├── LoggingBehavior.cs       # MediatR pipeline: request/response logging
 │   │   │   │   └── AuthorizationBehavior.cs # RBAC permission checks
 │   │   │   └── Models/
-│   │   │       ├── PagedResponse.cs        # Pagination: Items[], PageNumber, TotalPages, HasNextPage
-│   │   │       └── Result.cs               # Operation result: Success/Failure, Data, Errors
-│   │   ├── Features/                # CQRS handlers by domain (Phase 3)
+│   │   │       ├── PagedResponse.cs         # Pagination: Items[], PageNumber, TotalPages, HasNextPage
+│   │   │       └── Result.cs                # Operation result: Success/Failure, Data, Errors
+│   │   ├── Features/                # CQRS handlers by domain (Phase 3-4)
 │   │   │   ├── Manga/               # Manga commands & queries
 │   │   │   │   ├── Commands/
 │   │   │   │   │   ├── CreateMangaCommand.cs
@@ -92,10 +94,16 @@ manga-dotnet/
 │   │   │   │   │   ├── GetChapterQuery.cs
 │   │   │   │   │   └── ListChaptersQuery.cs
 │   │   │   │   └── Validators/
-│   │   │   └── Genre/                # Genre queries
-│   │   │       └── Queries/
-│   │   │           └── ListGenresQuery.cs
-│   │   └── DependencyInjection.cs   # Registers MediatR, FluentValidation, behaviors
+│   │   │   ├── Genre/                # Genre queries
+│   │   │   │   └── Queries/
+│   │   │   │       └── ListGenresQuery.cs
+│   │   │   └── Attachment/           # File upload & serving (Phase 4)
+│   │   │       ├── Commands/
+│   │   │       │   └── UploadAttachmentCommand.cs
+│   │   │       ├── Queries/
+│   │   │       │   └── GetAttachmentFileQuery.cs
+│   │   │       └── Validators/
+│   │   └── DependencyInjection.cs   # Registers MediatR, FluentValidation, behaviors, file services
 │   │
 │   ├── Manga.Infrastructure/       # Layer 3: External services, persistence (depends on Application)
 │   │   ├── Persistence/
@@ -107,21 +115,24 @@ manga-dotnet/
 │   │   │   │   ├── MangaSeriesConfiguration.cs
 │   │   │   │   ├── ChapterConfiguration.cs
 │   │   │   │   ├── PersonConfiguration.cs
-│   │   │   │   ├── AttachmentConfiguration.cs
+│   │   │   │   ├── AttachmentConfiguration.cs (includes ThumbnailUrl, ThumbnailStoragePath)
 │   │   │   │   ├── ViewStatConfiguration.cs (composite PK: TargetType, TargetId, ViewDate)
 │   │   │   │   └── ...other entity configs
 │   │   │   ├── Migrations/
 │   │   │   │   ├── 20260215044212_InitialSchema.cs
 │   │   │   │   ├── 20260215064500_AddPersonAndAttachment.cs
-│   │   │   │   └── 20260215074337_AddViewStats.cs
+│   │   │   │   ├── 20260215074337_AddViewStats.cs
+│   │   │   │   └── 20260216082000_AddAttachmentThumbnails.cs (Phase 4)
 │   │   │   └── Repositories/
 │   │   │       └── BaseRepository.cs # EF Core IRepository<T> implementation
 │   │   ├── Services/
-│   │   │   ├── DateTimeProvider.cs           # System clock (UTC) implementation
-│   │   │   ├── TokenService.cs               # JWT token generation/validation, refresh token rotation
-│   │   │   ├── MailKitEmailService.cs        # Real SMTP email sending (prod)
-│   │   │   └── DevEmailService.cs            # Console email logging (dev)
-│   │   └── DependencyInjection.cs   # Registers EF Core, Npgsql, interceptors, repos, auth services
+│   │   │   ├── DateTimeProvider.cs               # System clock (UTC) implementation
+│   │   │   ├── TokenService.cs                   # JWT token generation/validation, refresh token rotation
+│   │   │   ├── MailKitEmailService.cs            # Real SMTP email sending (prod)
+│   │   │   ├── DevEmailService.cs                # Console email logging (dev)
+│   │   │   ├── LocalFileStorageService.cs        # IFileStorageService impl - stores to uploads/ (Phase 4)
+│   │   │   └── SkiaSharpImageProcessingService.cs # IImageProcessingService impl - resize, convert, thumbnail (Phase 4)
+│   │   └── DependencyInjection.cs   # Registers EF Core, Npgsql, interceptors, repos, auth, file, image services
 │   │
 │   └── Manga.Api/                  # Layer 4: HTTP endpoints, middleware (depends on Application)
 │       ├── Program.cs              # Minimal API host: DI, middleware, endpoint mapping, JWT config
@@ -134,7 +145,8 @@ manga-dotnet/
 │       │   ├── AuthEndpoints.cs          # Auth endpoints (register, login, refresh, logout, verify-email, forgot-password, reset-password, me)
 │       │   ├── MangaEndpoints.cs         # Manga CRUD & search endpoints (Phase 3)
 │       │   ├── ChapterEndpoints.cs       # Chapter CRUD endpoints (Phase 3)
-│       │   └── GenreEndpoints.cs         # Genre listing endpoint (Phase 3)
+│       │   ├── GenreEndpoints.cs         # Genre listing endpoint (Phase 3)
+│       │   └── AttachmentEndpoints.cs    # File upload & serve endpoints (Phase 4)
 │       └── Properties/
 │           └── launchSettings.json       # http:5087, https:7123
 │
@@ -304,6 +316,9 @@ FluentValidation integrated as MediatR behavior:
 - **Npgsql.EntityFrameworkCore.PostgreSQL** (10.0.0): PostgreSQL driver
 - **Microsoft.EntityFrameworkCore.Design** (10.0.3): Migrations tooling
 
+### Image Processing (Phase 4)
+- **SkiaSharp** (3.x): High-performance image processing library (resize, format conversion, thumbnail generation)
+
 ### API & Documentation
 - **Microsoft.AspNetCore.OpenApi** (10.0.3): OpenAPI schema generation
 - **Scalar.AspNetCore** (2.12.39): Beautiful API docs UI (/scalar/v1)
@@ -443,11 +458,12 @@ Used for load balancer checks, Kubernetes probes.
 - **Auditable** (14): MangaSeries, Chapter, ChapterPage, AlternativeTitle, Genre, MangaGenre, Comment, CommentReaction, Bookmark, ReadingHistory, User, Person, Attachment
 - **Non-Auditable** (1): ViewStat (performance-optimized for analytics)
 
-**Migrations**: 4 applied
+**Migrations**: 5 applied
 1. InitialSchema (Feb 13) — Core entities
 2. AddPersonAndAttachment (Feb 13) — Authors/artists + file storage
 3. AddViewStats (Feb 15) — Daily view aggregation
 4. AddAuthEntities (Feb 15) — RefreshToken entity, auth-specific indexes
+5. AddAttachmentThumbnails (Feb 16) — ThumbnailUrl, ThumbnailStoragePath for media thumbnails
 
 ---
 

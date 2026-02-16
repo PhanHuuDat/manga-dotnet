@@ -4,8 +4,8 @@
 
 Manga-dotnet development roadmap spanning 6 phases over ~3-4 months. Each phase builds on the previous; dependencies tracked.
 
-**Current Phase**: Phase 3 Manga API Endpoints (100% Complete - Feb 16)
-**Previous Phases**: Foundation (100% Complete), Domain Modeling (100% Complete), Authentication (100% Complete)
+**Current Phase**: Phase 4 File Upload & Media (100% Complete - Feb 16)
+**Previous Phases**: Foundation (100% Complete), Domain Modeling (100% Complete), Auth (100% Complete), Manga API (100% Complete)
 
 ---
 
@@ -299,12 +299,11 @@ ReadingProgress (AuditableEntity)
 
 ---
 
-### Phase 4: Authentication & Authorization (COMPLETE)
+### Phase 4: File Upload & Media (COMPLETE)
 
 **Status**: 100% Complete ✓
-**Duration**: 3 days (accelerated)
-**Completed**: 2026-02-15
-**Superseded by Phase 3 (reordered): Moved before API endpoints**
+**Duration**: 1 day
+**Completed**: 2026-02-16
 
 **Goals**:
 - [x] Implement JWT authentication
@@ -382,62 +381,112 @@ ReadingProgress (AuditableEntity)
 
 ---
 
-### Phase 5: Frontend Integration & Advanced Features
+### Phase 4: File Upload & Media (COMPLETE)
 
-**Status**: In Progress
+**Status**: 100% Complete ✓
+**Duration**: 1 day
+**Completed**: 2026-02-16
+
+**Goals**:
+- [x] Implement file storage service
+- [x] Add image processing capabilities
+- [x] Create upload endpoint with authorization
+- [x] Serve uploaded files with caching
+
+**Implemented Components**:
+
+#### File Storage Service
+- **IFileStorageService** abstraction (Application layer)
+- **LocalFileStorageService** implementation (Infrastructure) — saves to `uploads/` directory
+- Unique filename generation with UUID
+- Path normalization and validation
+
+#### Image Processing Service
+- **IImageProcessingService** abstraction for all image operations
+- **SkiaSharpImageProcessingService** implementation
+- Image resize to configurable dimensions
+- WebP format conversion for web optimization
+- Thumbnail generation (e.g., 150x225 for manga covers)
+
+#### API Endpoints
+- **POST /api/attachments/upload** — Multipart file upload
+  - Validates file type (image/jpeg, image/png, image/webp)
+  - Applies authorization (AttachmentUpload permission)
+  - Processes images (resize, convert, thumbnail)
+  - Returns AttachmentResponse with file URL and thumbnail
+- **GET /api/attachments/{id}/file** — File serving endpoint
+  - Returns original or resized file
+  - Supports immutable cache headers for CDN caching
+  - Fallback file serving with proper content types
+
+#### Static File Serving
+- StaticFilesMiddleware configured at /api/attachments/
+- Immutable cache headers for versioned assets
+- Proper MIME types for all file formats
+
+#### Attachment Entity Updates
+- Added ThumbnailUrl field for thumbnail URLs
+- Added ThumbnailStoragePath field for internal storage path
+- EF Core migration applied
+
+#### NuGet Dependencies
+- **SkiaSharp 3.x** for high-performance image processing
+
+**Completed Acceptance Criteria**:
+- [x] File upload endpoint functional with auth
+- [x] Image processing (resize, convert, thumbnail) working
+- [x] Static file serving with cache headers
+- [x] Original + thumbnail URLs returned on upload
+- [x] Attachment entity supports thumbnails
+- [x] WebP format conversion enabled
+- [x] File validation (type, size) enforced
+
+**Key Implementation Details**:
+- Files stored in `uploads/{year}/{month}/{day}/{uuid}.{ext}` structure
+- Automatic thumbnail generation on upload
+- Immutable cache strategy (versioned URLs)
+- Multipart form validation
+- Authorization integrated via MediatR AuthorizationBehavior
+
+**Dependencies Met**:
+- Phase 3: API endpoints available ✓
+- Phase 2: Auth system working ✓
+
+**Next**: → Phase 5: Advanced Features & Reading History
+
+---
+
+### Phase 5: Advanced Features & Reading History
+
+**Status**: Pending
 **Duration**: 2 sprints (6 weeks)
 **Estimated Start**: 2026-02-17
 **Estimated Completion**: 2026-03-31
 
 **Goals**:
-- Enable single-page app (React/Vue/Angular) consumption
-- Optimize API for frontend performance
-- Implement image upload capability
-- Add WebSocket for real-time updates
-- Achieve <300ms p95 response time
+- Implement bookmark system
+- Add reading history tracking
+- Enhance user library features
+- Optimize API performance
 
-**Features**:
-
-#### CORS Configuration
-```csharp
-// Development: allow localhost:3000, localhost:5173
-// Production: allow specific frontend domain only
-```
-
-#### File Upload (Cover Images)
-- POST /api/manga/{id}/cover (multipart/form-data)
-- Validate image type (PNG, JPG, WebP)
-- Max size: 2MB
-- Store in blob storage (Azure/S3)
-
-#### WebSocket Support (Future)
-- Real-time chapter notifications
-- Live reading progress sync
-- Chat/comments (if enabled)
-
-#### Response Optimization
-- Pagination: 20 items default
-- Selective field inclusion via query params
-- Compression: gzip enabled
-- Caching headers: ETag, Last-Modified
-
-#### Rate Limiting
-- 100 requests/minute per IP (unauthenticated)
-- 1000 requests/minute per user (authenticated)
-- Cache popular queries (trending, top-rated)
+**Planned Features**:
+- POST /api/bookmarks — Create bookmark
+- DELETE /api/bookmarks/{id} — Remove bookmark
+- GET /api/users/{userId}/bookmarks — List bookmarks
+- POST /api/reading-history — Save reading progress
+- GET /api/reading-history/{userId} — Get history
+- GET /api/reading-history/{userId}/{mangaId} — Resume point
 
 **Acceptance Criteria**:
-- [ ] Frontend can authenticate & consume API
-- [ ] CORS configured correctly per environment
-- [ ] File upload endpoint tested with real images
-- [ ] Response times meet targets (<300ms p95)
-- [ ] Caching strategy reduces database load 30%+
-- [ ] Rate limiting prevents abuse
-- [ ] Zero CORS-related bugs
+- [ ] Bookmark CRUD endpoints functional
+- [ ] Reading history saved on chapter view
+- [ ] Resume reading from last chapter
+- [ ] User library synced across devices
+- [ ] All endpoints tested with >90% coverage
 
 **Dependencies**:
-- Phase 4: Authentication complete
-- Phase 4: Authorization working
+- Phase 4: File storage complete ✓
+- Backend ready for user features
 
 **Next**: → Phase 6: Deployment & DevOps
 
@@ -530,12 +579,12 @@ dotnet ef database update
 | Phase | Status | Start | End | Duration |
 |-------|--------|-------|-----|----------|
 | 1: Foundation | Complete | 2026-02-06 | 2026-02-13 | 1 week |
-| 2: Domain Modeling & Auth | Complete | 2026-02-13 | 2026-02-15 | 3 days (accelerated) |
-| 3: Manga API Endpoints | **Complete** | 2026-02-16 | 2026-02-16 | 1 week |
-| 4: Frontend Integration | In Progress | 2026-02-17 | 2026-03-31 | 6 weeks |
-| 5: Advanced Features | Planned | 2026-04-01 | 2026-05-13 | 6 weeks |
-| 6: Deployment & DevOps | Planned | 2026-05-14 | 2026-06-18 | 5 weeks |
-| **Total** | | 2026-02-06 | ~2026-06-18 | **~20 weeks** |
+| 2: Domain Modeling & Auth | Complete | 2026-02-13 | 2026-02-15 | 3 days |
+| 3: Manga API Endpoints | Complete | 2026-02-16 | 2026-02-16 | 1 week |
+| 4: File Upload & Media | **Complete** | 2026-02-16 | 2026-02-16 | 1 day |
+| 5: Advanced Features | Planned | 2026-02-17 | 2026-03-31 | 6 weeks |
+| 6: Deployment & DevOps | Planned | 2026-04-01 | 2026-05-15 | 6 weeks |
+| **Total** | | 2026-02-06 | ~2026-05-15 | **~13 weeks** |
 
 ---
 
@@ -563,11 +612,20 @@ dotnet ef database update
 - [x] Search & filtering functional
 - [x] Soft-delete working correctly
 
-### Phase 4 (Frontend Integration)
-- [ ] React app successfully consuming all API endpoints
-- [ ] Response time p95 <300ms end-to-end
-- [ ] CORS configured per environment
-- [ ] All frontend tests passing against real API
+### Phase 4 (File Upload & Media) ✓ COMPLETE
+- [x] File storage service implemented
+- [x] Image processing (resize, convert, thumbnail)
+- [x] Upload endpoint with authorization (2 endpoints total)
+- [x] Static file serving with cache headers
+- [x] Attachment entity with thumbnail support
+- [x] 16 MediatR handlers total
+- [x] SkiaSharp 3.x integration
+
+### Phase 5 (Advanced Features)
+- [ ] Bookmark CRUD endpoints
+- [ ] Reading history tracking
+- [ ] User library management
+- [ ] All bookmarks/history tests passing
 
 ### Phase 5 (Advanced Features)
 - [ ] Bookmarking system implemented
@@ -653,6 +711,6 @@ Next roadmap review: End of Phase 2 (2026-04-10)
 
 ---
 
-**Document Version**: 1.3 (Phase 3: Manga API Endpoints Completed)
+**Document Version**: 1.4 (Phase 4: File Upload & Media Completed)
 **Last Updated**: 2026-02-16
 **Created By**: Documentation Team

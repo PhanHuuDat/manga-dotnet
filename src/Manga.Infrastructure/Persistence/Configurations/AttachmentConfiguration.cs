@@ -34,6 +34,12 @@ public class AttachmentConfiguration : IEntityTypeConfiguration<Attachment>
         builder.Property(a => a.Type)
             .IsRequired();
 
+        builder.Property(a => a.ThumbnailUrl)
+            .HasMaxLength(500);
+
+        builder.Property(a => a.ThumbnailStoragePath)
+            .HasMaxLength(500);
+
         builder.HasIndex(a => a.Type);
     }
 }

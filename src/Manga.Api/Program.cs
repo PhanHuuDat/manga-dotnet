@@ -8,6 +8,7 @@ using Manga.Infrastructure;
 using Manga.Infrastructure.Auth;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.FileProviders;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -89,6 +90,21 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+// Ensure uploads directory exists for static file serving
+var uploadsPath = Path.Combine(builder.Environment.ContentRootPath, "uploads");
+Directory.CreateDirectory(uploadsPath);
+
+// Serve uploaded files as static content (GUID-named, immutable)
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(uploadsPath),
+    RequestPath = "/api/attachments",
+    OnPrepareResponse = ctx =>
+    {
+        ctx.Context.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+    },
+});
+
 app.UseAuthentication();
 app.UseMiddleware<JwtBlacklistMiddleware>();
 app.UseAuthorization();
@@ -99,5 +115,6 @@ app.MapAuthEndpoints();
 app.MapMangaEndpoints();
 app.MapChapterEndpoints();
 app.MapGenreEndpoints();
+app.MapAttachmentEndpoints();
 
 app.Run();

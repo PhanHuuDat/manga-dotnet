@@ -2,9 +2,11 @@ using Manga.Application.Common.Interfaces;
 using Manga.Domain.Interfaces;
 using Manga.Infrastructure.Auth;
 using Manga.Infrastructure.Email;
+using Manga.Infrastructure.ImageProcessing;
 using Manga.Infrastructure.Persistence;
 using Manga.Infrastructure.Persistence.Interceptors;
 using Manga.Infrastructure.Services;
+using Manga.Infrastructure.Storage;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -61,6 +63,14 @@ public static class DependencyInjection
             services.AddScoped<IEmailService, DevEmailService>();
         else
             services.AddScoped<IEmailService, SmtpEmailService>();
+
+        // File storage
+        services.Configure<FileStorageSettings>(configuration.GetSection(FileStorageSettings.SectionName));
+        services.AddScoped<IFileStorageService, LocalFileStorageService>();
+
+        // Image processing
+        services.Configure<ImageProcessingSettings>(configuration.GetSection(ImageProcessingSettings.SectionName));
+        services.AddScoped<IImageProcessingService, SkiaSharpImageProcessingService>();
 
         return services;
     }

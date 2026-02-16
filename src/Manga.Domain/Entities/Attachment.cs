@@ -25,4 +25,10 @@ public class Attachment : AuditableEntity
 
     /// <summary>Classification of the attachment usage.</summary>
     public AttachmentType Type { get; set; }
+
+    /// <summary>Public URL for the thumbnail version (covers, banners, chapter pages).</summary>
+    public string? ThumbnailUrl { get; set; }
+
+    /// <summary>Internal storage path for thumbnail.</summary>
+    public string? ThumbnailStoragePath { get; set; }
 }
