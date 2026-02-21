@@ -2,6 +2,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
+COPY Directory.Build.props ./
 COPY src/Manga.Domain/Manga.Domain.csproj src/Manga.Domain/
 COPY src/Manga.Application/Manga.Application.csproj src/Manga.Application/
 COPY src/Manga.Infrastructure/Manga.Infrastructure.csproj src/Manga.Infrastructure/
