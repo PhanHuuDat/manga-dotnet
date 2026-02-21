@@ -12,13 +12,13 @@ public static class AuthSeeder
 {
     public static async Task SeedAsync(AppDbContext context, IPasswordHasher passwordHasher)
     {
-        if (await context.Users.AnyAsync(u => u.Email == "admin@mangavoid.com"))
+        if (await context.Users.AnyAsync(u => u.Email == "admin@luvmanga.com"))
             return;
 
         var adminUser = new User
         {
             Username = "admin",
-            Email = "admin@mangavoid.com",
+            Email = "admin@luvmanga.com",
             PasswordHash = passwordHasher.Hash("Admin123!"),
             DisplayName = "Admin",
             EmailConfirmed = true,
