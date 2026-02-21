@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.FileProviders;
 using Scalar.AspNetCore;
 
@@ -73,15 +74,26 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Auto-migrate and seed data (development only)
-if (app.Environment.IsDevelopment())
+// Auto-migrate: runs in dev always, in prod when AutoMigrate=true
+if (app.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>("AutoMigrate"))
 {
     using var scope = app.Services.CreateScope();
     var context = scope.ServiceProvider.GetRequiredService<Manga.Infrastructure.Persistence.AppDbContext>();
     await context.Database.MigrateAsync();
-    var hasher = scope.ServiceProvider.GetRequiredService<Manga.Domain.Interfaces.IPasswordHasher>();
-    await Manga.Infrastructure.Persistence.Seeders.AuthSeeder.SeedAsync(context, hasher);
+
+    // Seed data only in development
+    if (app.Environment.IsDevelopment())
+    {
+        var hasher = scope.ServiceProvider.GetRequiredService<Manga.Domain.Interfaces.IPasswordHasher>();
+        await Manga.Infrastructure.Persistence.Seeders.AuthSeeder.SeedAsync(context, hasher);
+    }
 }
+
+// Forward headers from reverse proxy (Nginx/Cloudflare) for correct client IPs
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+});
 
 // Middleware pipeline — CORS must be before exception handler
 // so error responses include CORS headers for browser consumption.

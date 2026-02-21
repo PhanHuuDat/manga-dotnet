@@ -16,9 +16,13 @@ RUN dotnet publish src/Manga.Api/Manga.Api.csproj -c Release -o /app/publish --n
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
 
-RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
+RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser \
+    && apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /app/publish .
+
+# Ensure uploads dir exists and is writable by non-root user
+RUN mkdir -p /app/uploads && chown appuser:appgroup /app/uploads
 
 USER appuser
 EXPOSE 8080
