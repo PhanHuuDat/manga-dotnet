@@ -18,7 +18,11 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
 
 RUN groupadd --system appgroup && useradd --system --gid appgroup --no-create-home appuser \
-    && apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+    && apt-get update && apt-get install -y --no-install-recommends \
+        curl \
+        libfontconfig1 \
+        libfreetype6 \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /app/publish .
 
