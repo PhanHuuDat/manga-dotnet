@@ -142,5 +142,6 @@ app.MapReadingHistoryEndpoints();
 app.MapCommentEndpoints();
 app.MapViewEndpoints();
 app.MapUserEndpoints();
+app.MapAdminEndpoints();
 
 app.Run();

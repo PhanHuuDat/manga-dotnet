@@ -42,6 +42,9 @@ public class RefreshTokenCommandHandler(
         if (storedToken.IsExpired)
             return Result<LoginTokenResult>.Failure("Refresh token expired.");
 
+        if (!storedToken.User.IsActive)
+            return Result<LoginTokenResult>.Failure("Account has been deactivated.");
+
         // Revoke current token
         storedToken.RevokedAt = DateTimeOffset.UtcNow;
 

@@ -29,6 +29,9 @@ public class User : AuditableEntity
     /// <summary>Whether the user is currently active on the platform.</summary>
     public bool IsOnline { get; set; }
 
+    /// <summary>Whether the account is active (can be disabled by admin).</summary>
+    public bool IsActive { get; set; } = true;
+
     /// <summary>Whether email address has been verified.</summary>
     public bool EmailConfirmed { get; set; }
 

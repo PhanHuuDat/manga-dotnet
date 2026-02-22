@@ -25,6 +25,9 @@ public class LoginCommandHandler(
         if (user is null || !passwordHasher.Verify(request.Password, user.PasswordHash))
             return Result<LoginTokenResult>.Failure("Invalid credentials.");
 
+        if (!user.IsActive)
+            return Result<LoginTokenResult>.Failure("Account has been deactivated.");
+
         var roles = user.UserRoles.Select(r => r.Role).ToList();
         var roleNames = roles.Select(r => r.ToString()).ToList();
         var permissions = RolePermissions.GetPermissions(roles)

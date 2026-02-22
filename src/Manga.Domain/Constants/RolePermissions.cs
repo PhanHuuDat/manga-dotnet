@@ -25,6 +25,7 @@ public static class RolePermissions
             Permission.ChapterCreate,
             Permission.ChapterUpdate,
             Permission.AttachmentDelete,
+            Permission.AdminViewStats,
         ],
         [UserRole.Moderator] =
         [
@@ -40,6 +41,8 @@ public static class RolePermissions
             Permission.ChapterDelete,
             Permission.AttachmentUpload,
             Permission.AttachmentDelete,
+            Permission.AdminViewStats,
+            Permission.AdminManageComments,
         ],
         [UserRole.Admin] = Enum.GetValues<Permission>(),
     };

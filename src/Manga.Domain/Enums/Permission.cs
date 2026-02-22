@@ -35,4 +35,9 @@ public enum Permission
     GenreCreate = 600,
     GenreUpdate = 601,
     GenreDelete = 602,
+
+    // Admin
+    AdminViewStats = 700,
+    AdminManageUsers = 701,
+    AdminManageComments = 702,
 }
