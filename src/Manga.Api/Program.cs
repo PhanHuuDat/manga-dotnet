@@ -74,20 +74,26 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Auto-migrate: runs in dev always, in prod when AutoMigrate=true
-if (app.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>("AutoMigrate"))
+using (var scope = app.Services.CreateScope())
 {
-    using var scope = app.Services.CreateScope();
     var context = scope.ServiceProvider.GetRequiredService<Manga.Infrastructure.Persistence.AppDbContext>();
-    await context.Database.MigrateAsync();
 
-    // Seed admin account if credentials are provided via environment variables.
+    // Auto-migrate: runs in dev always, in prod when AutoMigrate=true
+    if (app.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>("AutoMigrate"))
+        await context.Database.MigrateAsync();
+
+    // Seed admin account on startup if no admin role exists yet and credentials are provided.
+    // Bypasses seeding if any admin account already exists (checked by role, not by email).
     // Required env vars: ADMIN_USERNAME, ADMIN_EMAIL, ADMIN_PASSWORD.
     var adminUsername = Environment.GetEnvironmentVariable("ADMIN_USERNAME");
     var adminEmail = Environment.GetEnvironmentVariable("ADMIN_EMAIL");
     var adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD");
 
-    if (!string.IsNullOrWhiteSpace(adminUsername) &&
+    var hasAdminAccount = await context.UserRoleMappings
+        .AnyAsync(m => m.Role == Manga.Domain.Enums.UserRole.Admin);
+
+    if (!hasAdminAccount &&
+        !string.IsNullOrWhiteSpace(adminUsername) &&
         !string.IsNullOrWhiteSpace(adminEmail) &&
         !string.IsNullOrWhiteSpace(adminPassword))
     {
