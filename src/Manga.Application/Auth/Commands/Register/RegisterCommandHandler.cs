@@ -1,4 +1,3 @@
-using Manga.Application.Common.Helpers;
 using Manga.Application.Common.Interfaces;
 using Manga.Application.Common.Models;
 using Manga.Domain.Entities;
@@ -11,9 +10,7 @@ namespace Manga.Application.Auth.Commands.Register;
 
 public class RegisterCommandHandler(
     IAppDbContext db,
-    IPasswordHasher passwordHasher,
-    ITokenService tokenService,
-    IEmailService emailService) : IRequestHandler<RegisterCommand, Result>
+    IPasswordHasher passwordHasher) : IRequestHandler<RegisterCommand, Result>
 {
     public async Task<Result> Handle(RegisterCommand request, CancellationToken ct)
     {
@@ -28,24 +25,14 @@ public class RegisterCommandHandler(
             Username = request.Username,
             Email = request.Email,
             PasswordHash = passwordHasher.Hash(request.Password),
-            EmailConfirmed = false,
+            // Email verification disabled temporarily — auto-confirm on registration
+            EmailConfirmed = true,
         };
 
         db.Users.Add(user);
         db.UserRoleMappings.Add(new UserRoleMapping { UserId = user.Id, Role = UserRole.Reader });
 
-        // Generate email verification token
-        var rawToken = tokenService.GenerateEmailToken();
-        db.VerificationTokens.Add(new VerificationToken
-        {
-            UserId = user.Id,
-            Token = TokenHasher.Hash(rawToken),
-            TokenType = VerificationTokenType.EmailVerification,
-            ExpiresAt = DateTimeOffset.UtcNow.AddHours(24),
-        });
-
         await db.SaveChangesAsync(ct);
-        await emailService.SendEmailVerificationAsync(user.Email, user.Username, rawToken, user.Id, ct);
 
         return Result.Success();
     }
