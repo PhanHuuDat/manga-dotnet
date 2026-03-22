@@ -9,20 +9,17 @@ namespace Manga.Application.Tests.Auth;
 public class RegisterCommandHandlerTests
 {
     private readonly IPasswordHasher _passwordHasher = Substitute.For<IPasswordHasher>();
-    private readonly ITokenService _tokenService = Substitute.For<ITokenService>();
-    private readonly IEmailService _emailService = Substitute.For<IEmailService>();
 
     public RegisterCommandHandlerTests()
     {
         _passwordHasher.Hash(Arg.Any<string>()).Returns("hashed_password");
-        _tokenService.GenerateEmailToken().Returns("test_email_token");
     }
 
     [Fact]
     public async Task Handle_WithValidCommand_CreatesUserWithHashedPassword()
     {
         using var db = TestDbContextFactory.Create();
-        var handler = new RegisterCommandHandler(db, _passwordHasher, _tokenService, _emailService);
+        var handler = new RegisterCommandHandler(db, _passwordHasher);
         var command = new RegisterCommand("testuser", "test@example.com", "Password123!", "Password123!");
 
         var result = await handler.Handle(command, CancellationToken.None);
@@ -40,7 +37,7 @@ public class RegisterCommandHandlerTests
         db.Users.Add(new User { Username = "existing", Email = "test@example.com", PasswordHash = "hash" });
         await db.SaveChangesAsync();
 
-        var handler = new RegisterCommandHandler(db, _passwordHasher, _tokenService, _emailService);
+        var handler = new RegisterCommandHandler(db, _passwordHasher);
         var command = new RegisterCommand("newuser", "test@example.com", "Password123!", "Password123!");
 
         var result = await handler.Handle(command, CancellationToken.None);
@@ -56,7 +53,7 @@ public class RegisterCommandHandlerTests
         db.Users.Add(new User { Username = "testuser", Email = "existing@example.com", PasswordHash = "hash" });
         await db.SaveChangesAsync();
 
-        var handler = new RegisterCommandHandler(db, _passwordHasher, _tokenService, _emailService);
+        var handler = new RegisterCommandHandler(db, _passwordHasher);
         var command = new RegisterCommand("testuser", "new@example.com", "Password123!", "Password123!");
 
         var result = await handler.Handle(command, CancellationToken.None);
@@ -69,7 +66,7 @@ public class RegisterCommandHandlerTests
     public async Task Handle_AssignsReaderRole_ByDefault()
     {
         using var db = TestDbContextFactory.Create();
-        var handler = new RegisterCommandHandler(db, _passwordHasher, _tokenService, _emailService);
+        var handler = new RegisterCommandHandler(db, _passwordHasher);
         var command = new RegisterCommand("testuser", "test@example.com", "Password123!", "Password123!");
 
         await handler.Handle(command, CancellationToken.None);
@@ -80,28 +77,16 @@ public class RegisterCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_SendsVerificationEmail()
+    public async Task Handle_SetsEmailConfirmed_ToTrue()
     {
+        // Email verification is disabled — users are auto-confirmed on registration.
         using var db = TestDbContextFactory.Create();
-        var handler = new RegisterCommandHandler(db, _passwordHasher, _tokenService, _emailService);
-        var command = new RegisterCommand("testuser", "test@example.com", "Password123!", "Password123!");
-
-        await handler.Handle(command, CancellationToken.None);
-
-        await _emailService.Received(1).SendEmailVerificationAsync(
-            "test@example.com", "testuser", "test_email_token", Arg.Any<Guid>(), Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task Handle_SetsEmailConfirmed_ToFalse()
-    {
-        using var db = TestDbContextFactory.Create();
-        var handler = new RegisterCommandHandler(db, _passwordHasher, _tokenService, _emailService);
+        var handler = new RegisterCommandHandler(db, _passwordHasher);
         var command = new RegisterCommand("testuser", "test@example.com", "Password123!", "Password123!");
 
         await handler.Handle(command, CancellationToken.None);
 
         var user = db.Users.First();
-        Assert.False(user.EmailConfirmed);
+        Assert.True(user.EmailConfirmed);
     }
 }
