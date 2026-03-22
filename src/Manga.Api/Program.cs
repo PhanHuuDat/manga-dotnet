@@ -81,11 +81,19 @@ if (app.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>("Aut
     var context = scope.ServiceProvider.GetRequiredService<Manga.Infrastructure.Persistence.AppDbContext>();
     await context.Database.MigrateAsync();
 
-    // Seed data only in development
-    if (app.Environment.IsDevelopment())
+    // Seed admin account if credentials are provided via environment variables.
+    // Required env vars: ADMIN_USERNAME, ADMIN_EMAIL, ADMIN_PASSWORD.
+    var adminUsername = Environment.GetEnvironmentVariable("ADMIN_USERNAME");
+    var adminEmail = Environment.GetEnvironmentVariable("ADMIN_EMAIL");
+    var adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD");
+
+    if (!string.IsNullOrWhiteSpace(adminUsername) &&
+        !string.IsNullOrWhiteSpace(adminEmail) &&
+        !string.IsNullOrWhiteSpace(adminPassword))
     {
         var hasher = scope.ServiceProvider.GetRequiredService<Manga.Domain.Interfaces.IPasswordHasher>();
-        await Manga.Infrastructure.Persistence.Seeders.AuthSeeder.SeedAsync(context, hasher);
+        await Manga.Infrastructure.Persistence.Seeders.AuthSeeder.SeedAsync(
+            context, hasher, adminUsername, adminEmail, adminPassword);
     }
 }
 
