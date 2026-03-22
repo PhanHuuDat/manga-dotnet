@@ -20,13 +20,14 @@ public class ListMangaQueryHandler(IAppDbContext db)
         // No Include() needed — Select() projection generates JOINs automatically
         IQueryable<MangaSeries> query = db.MangaSeries;
 
-        // Text search on title/author
+        // Text search on title/author via ILike (PostgreSQL ILIKE, uses GIN trigram index)
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            var term = request.Search.Trim().ToLower();
+            var term = request.Search.Trim();
+            var pattern = $"%{term}%";
             query = query.Where(m =>
-                m.Title.ToLower().Contains(term) ||
-                m.Author.Name.ToLower().Contains(term));
+                EF.Functions.ILike(m.Title, pattern) ||
+                EF.Functions.ILike(m.Author.Name, pattern));
         }
 
         // Filter by genre

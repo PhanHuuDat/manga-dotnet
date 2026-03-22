@@ -13,6 +13,8 @@ public class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IE
     public async ValueTask<bool> TryHandleAsync(
         HttpContext context, Exception exception, CancellationToken ct)
     {
+        var requestPath = $"{context.Request.Method} {context.Request.Path}";
+
         var (statusCode, title, detail) = exception switch
         {
             ValidationException validationEx => (
@@ -47,9 +49,9 @@ public class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IE
         };
 
         if (statusCode == StatusCodes.Status500InternalServerError)
-            logger.LogError(exception, "Unhandled exception");
+            logger.LogError(exception, "Unhandled exception at {RequestPath}", requestPath);
         else
-            logger.LogWarning(exception, "Handled exception: {Title}", title);
+            logger.LogWarning(exception, "Handled exception at {RequestPath}: {Title}", requestPath, title);
 
         var problem = new ProblemDetails
         {

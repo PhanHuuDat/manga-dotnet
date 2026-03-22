@@ -1,3 +1,4 @@
+using Manga.Application.Common.Models;
 using Manga.Application.Common.Services;
 using Manga.Application.Manga.Commands.UpdateManga;
 using Manga.Application.Tests.Auth;
@@ -10,10 +11,16 @@ namespace Manga.Application.Tests.Manga;
 public class UpdateMangaCommandHandlerTests
 {
     private readonly IUserAuthorizationService _authService = Substitute.For<IUserAuthorizationService>();
+    private readonly IAttachmentValidationService _attachmentValidator = Substitute.For<IAttachmentValidationService>();
+    private readonly IGenreValidationService _genreValidator = Substitute.For<IGenreValidationService>();
 
     public UpdateMangaCommandHandlerTests()
     {
         _authService.HasModeratorPermissionAsync(Arg.Any<CancellationToken>()).Returns(true);
+        _attachmentValidator.ValidateExistsAsync(Arg.Any<Guid?>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult((Result?)null));
+        _genreValidator.ValidateAllExistAsync(Arg.Any<ICollection<Guid>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult((Result?)null));
     }
 
     [Fact]
@@ -26,7 +33,7 @@ public class UpdateMangaCommandHandlerTests
         db.MangaSeries.Add(manga);
         await db.SaveChangesAsync();
 
-        var handler = new UpdateMangaCommandHandler(db, _authService);
+        var handler = new UpdateMangaCommandHandler(db, _authService, _attachmentValidator, _genreValidator);
         var command = new UpdateMangaCommand(
             manga.Id, "New Title", null, null, null, null, null, null, null, null);
 
@@ -40,7 +47,7 @@ public class UpdateMangaCommandHandlerTests
     public async Task Handle_MangaNotFound_ReturnsFailure()
     {
         using var db = TestDbContextFactory.Create();
-        var handler = new UpdateMangaCommandHandler(db, _authService);
+        var handler = new UpdateMangaCommandHandler(db, _authService, _attachmentValidator, _genreValidator);
         var command = new UpdateMangaCommand(
             Guid.NewGuid(), "Title", null, null, null, null, null, null, null, null);
 
@@ -63,7 +70,7 @@ public class UpdateMangaCommandHandlerTests
         _authService.HasModeratorPermissionAsync(Arg.Any<CancellationToken>()).Returns(false);
         _authService.IsOwner("user-1").Returns(false);
 
-        var handler = new UpdateMangaCommandHandler(db, _authService);
+        var handler = new UpdateMangaCommandHandler(db, _authService, _attachmentValidator, _genreValidator);
         var command = new UpdateMangaCommand(
             manga.Id, "New Title", null, null, null, null, null, null, null, null);
 
@@ -86,7 +93,7 @@ public class UpdateMangaCommandHandlerTests
         _authService.HasModeratorPermissionAsync(Arg.Any<CancellationToken>()).Returns(false);
         _authService.IsOwner("user-1").Returns(true);
 
-        var handler = new UpdateMangaCommandHandler(db, _authService);
+        var handler = new UpdateMangaCommandHandler(db, _authService, _attachmentValidator, _genreValidator);
         var command = new UpdateMangaCommand(
             manga.Id, "Updated", null, null, null, null, null, null, null, null);
 
@@ -110,7 +117,7 @@ public class UpdateMangaCommandHandlerTests
         db.MangaGenres.Add(new MangaGenre { MangaSeriesId = manga.Id, GenreId = oldGenre.Id });
         await db.SaveChangesAsync();
 
-        var handler = new UpdateMangaCommandHandler(db, _authService);
+        var handler = new UpdateMangaCommandHandler(db, _authService, _attachmentValidator, _genreValidator);
         var command = new UpdateMangaCommand(
             manga.Id, null, null, null, [newGenre.Id], null, null, null, null, null);
 
@@ -132,7 +139,11 @@ public class UpdateMangaCommandHandlerTests
         db.MangaSeries.Add(manga);
         await db.SaveChangesAsync();
 
-        var handler = new UpdateMangaCommandHandler(db, _authService);
+        var invalidAttachmentValidator = Substitute.For<IAttachmentValidationService>();
+        invalidAttachmentValidator.ValidateExistsAsync(Arg.Any<Guid?>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult((Result?)Result.Failure("Cover attachment not found")));
+
+        var handler = new UpdateMangaCommandHandler(db, _authService, invalidAttachmentValidator, _genreValidator);
         var command = new UpdateMangaCommand(
             manga.Id, null, null, null, null, null, null, null, Guid.NewGuid(), null);
 

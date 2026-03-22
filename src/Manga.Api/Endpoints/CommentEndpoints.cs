@@ -1,3 +1,4 @@
+using Manga.Api.Extensions;
 using Manga.Application.Comments.Commands.CreateComment;
 using Manga.Application.Comments.Commands.DeleteComment;
 using Manga.Application.Comments.Commands.ToggleReaction;
@@ -27,7 +28,7 @@ public static class CommentEndpoints
         var result = await sender.Send(command);
         return result.Succeeded
             ? Results.Created($"/api/comments/{result.Value}", new { id = result.Value })
-            : Results.BadRequest(new { errors = result.Errors });
+            : result.ToProblem();
     }
 
     private static async Task<IResult> ListAsync(
@@ -47,7 +48,7 @@ public static class CommentEndpoints
         var result = await sender.Send(new UpdateCommentCommand(id, body.Content));
         return result.Succeeded
             ? Results.NoContent()
-            : Results.BadRequest(new { errors = result.Errors });
+            : result.ToProblem();
     }
 
     private static async Task<IResult> DeleteAsync(Guid id, ISender sender)
@@ -55,7 +56,7 @@ public static class CommentEndpoints
         var result = await sender.Send(new DeleteCommentCommand(id));
         return result.Succeeded
             ? Results.NoContent()
-            : Results.BadRequest(new { errors = result.Errors });
+            : result.ToProblem();
     }
 
     private static async Task<IResult> ToggleReactionAsync(
@@ -64,7 +65,7 @@ public static class CommentEndpoints
         var result = await sender.Send(new ToggleReactionCommand(id, body.ReactionType));
         return result.Succeeded
             ? Results.Ok(result.Value)
-            : Results.BadRequest(new { errors = result.Errors });
+            : result.ToProblem();
     }
 }
 

@@ -1,3 +1,4 @@
+using Manga.Api.Extensions;
 using Manga.Application.Users.Commands.UpdateProfile;
 using Manga.Application.Users.Commands.UploadAvatar;
 using Manga.Application.Users.Queries.GetUserStats;
@@ -29,7 +30,7 @@ public static class UserEndpoints
         var result = await sender.Send(command);
         return result.Succeeded
             ? Results.Ok(new { message = "Profile updated successfully." })
-            : Results.BadRequest(new { errors = result.Errors });
+            : result.ToProblem();
     }
 
     private static async Task<IResult> UploadAvatarAsync(
@@ -42,7 +43,7 @@ public static class UserEndpoints
         var result = await sender.Send(command);
         return result.Succeeded
             ? Results.Ok(new { avatarUrl = result.Value })
-            : Results.BadRequest(new { errors = result.Errors });
+            : result.ToProblem();
     }
 
     private static async Task<IResult> GetStatsAsync(ISender sender)
@@ -50,6 +51,6 @@ public static class UserEndpoints
         var result = await sender.Send(new GetUserStatsQuery());
         return result.Succeeded
             ? Results.Ok(result.Value)
-            : Results.BadRequest(new { errors = result.Errors });
+            : result.ToProblem();
     }
 }

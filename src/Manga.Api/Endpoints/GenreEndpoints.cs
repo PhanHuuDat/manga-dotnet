@@ -1,3 +1,4 @@
+using Manga.Api.Extensions;
 using Manga.Application.Genres.Queries.ListGenres;
 using MediatR;
 
@@ -17,6 +18,6 @@ public static class GenreEndpoints
         var result = await sender.Send(new ListGenresQuery());
         return result.Succeeded
             ? Results.Ok(result.Value)
-            : Results.BadRequest(new { errors = result.Errors });
+            : result.ToProblem();
     }
 }

@@ -45,7 +45,7 @@ public class CommentConfiguration : IEntityTypeConfiguration<Comment>
             .HasForeignKey(c => c.ParentId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasIndex(c => c.MangaSeriesId);
+        builder.HasIndex(c => new { c.MangaSeriesId, c.ParentId });
         builder.HasIndex(c => c.ChapterId);
         builder.HasIndex(c => c.ParentId);
         builder.HasIndex(c => c.UserId);

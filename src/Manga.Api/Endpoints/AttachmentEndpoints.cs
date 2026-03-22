@@ -1,3 +1,4 @@
+using Manga.Api.Extensions;
 using Manga.Application.Attachments.Commands.UploadAttachment;
 using Manga.Application.Attachments.Queries.GetAttachmentFile;
 using Manga.Domain.Enums;
@@ -29,7 +30,7 @@ public static class AttachmentEndpoints
         var result = await sender.Send(command);
         return result.Succeeded
             ? Results.Ok(result.Value)
-            : Results.BadRequest(new { errors = result.Errors });
+            : result.ToProblem();
     }
 
     private static async Task<IResult> GetFileAsync(
@@ -37,7 +38,7 @@ public static class AttachmentEndpoints
     {
         var result = await sender.Send(new GetAttachmentFileQuery(id));
         if (!result.Succeeded)
-            return Results.NotFound(new { errors = result.Errors });
+            return result.ToProblem(404);
 
         httpContext.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
 

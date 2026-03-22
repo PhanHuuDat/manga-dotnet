@@ -1,3 +1,4 @@
+using Manga.Api.Extensions;
 using Manga.Application.ReadingHistories.Commands.ClearReadingHistory;
 using Manga.Application.ReadingHistories.Commands.UpsertReadingHistory;
 using Manga.Application.ReadingHistories.Queries.GetResumePoint;
@@ -26,7 +27,7 @@ public static class ReadingHistoryEndpoints
         var result = await sender.Send(command);
         return result.Succeeded
             ? Results.Ok(new { id = result.Value })
-            : Results.BadRequest(new { errors = result.Errors });
+            : result.ToProblem();
     }
 
     private static async Task<IResult> ListAsync(
@@ -51,6 +52,6 @@ public static class ReadingHistoryEndpoints
         var result = await sender.Send(new ClearReadingHistoryCommand(mangaId));
         return result.Succeeded
             ? Results.NoContent()
-            : Results.BadRequest(new { errors = result.Errors });
+            : result.ToProblem();
     }
 }

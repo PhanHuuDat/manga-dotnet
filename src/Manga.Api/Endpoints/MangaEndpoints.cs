@@ -1,3 +1,4 @@
+using Manga.Api.Extensions;
 using Manga.Application.Manga.Commands.CreateManga;
 using Manga.Application.Manga.Commands.DeleteManga;
 using Manga.Application.Manga.Commands.UpdateManga;
@@ -33,7 +34,7 @@ public static class MangaEndpoints
         var result = await sender.Send(command);
         return result.Succeeded
             ? Results.Created($"/api/manga/{result.Value}", result.Value)
-            : Results.BadRequest(new { errors = result.Errors });
+            : result.ToProblem();
     }
 
     private static async Task<IResult> ListMangaAsync(
@@ -51,7 +52,7 @@ public static class MangaEndpoints
         var result = await sender.Send(query);
         return result.Succeeded
             ? Results.Ok(result.Value)
-            : Results.BadRequest(new { errors = result.Errors });
+            : result.ToProblem();
     }
 
     private static async Task<IResult> GetMangaAsync(Guid id, ISender sender)
@@ -59,7 +60,7 @@ public static class MangaEndpoints
         var result = await sender.Send(new GetMangaQuery(id));
         return result.Succeeded
             ? Results.Ok(result.Value)
-            : Results.NotFound(new { errors = result.Errors });
+            : result.ToProblem(404);
     }
 
     private static async Task<IResult> UpdateMangaAsync(
@@ -69,7 +70,7 @@ public static class MangaEndpoints
         var result = await sender.Send(cmd);
         return result.Succeeded
             ? Results.NoContent()
-            : Results.BadRequest(new { errors = result.Errors });
+            : result.ToProblem();
     }
 
     private static async Task<IResult> DeleteMangaAsync(Guid id, ISender sender)
@@ -77,7 +78,7 @@ public static class MangaEndpoints
         var result = await sender.Send(new DeleteMangaCommand(id));
         return result.Succeeded
             ? Results.NoContent()
-            : Results.NotFound(new { errors = result.Errors });
+            : result.ToProblem(404);
     }
 
     private static async Task<IResult> GetMangaChaptersAsync(
@@ -87,7 +88,7 @@ public static class MangaEndpoints
         var result = await sender.Send(query);
         return result.Succeeded
             ? Results.Ok(result.Value)
-            : Results.NotFound(new { errors = result.Errors });
+            : result.ToProblem(404);
     }
 
     private static async Task<IResult> SearchMangaAsync(
@@ -97,7 +98,7 @@ public static class MangaEndpoints
         var result = await sender.Send(query);
         return result.Succeeded
             ? Results.Ok(result.Value)
-            : Results.BadRequest(new { errors = result.Errors });
+            : result.ToProblem();
     }
 
     private static async Task<IResult> GetTrendingMangaAsync(
@@ -107,6 +108,6 @@ public static class MangaEndpoints
         var result = await sender.Send(query);
         return result.Succeeded
             ? Results.Ok(result.Value)
-            : Results.BadRequest(new { errors = result.Errors });
+            : result.ToProblem();
     }
 }

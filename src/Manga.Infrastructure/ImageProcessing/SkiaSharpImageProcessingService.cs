@@ -125,7 +125,7 @@ public class SkiaSharpImageProcessingService(
     private static MemoryStream EncodeToWebP(SKBitmap bitmap, int quality)
     {
         using var image = SKImage.FromBitmap(bitmap);
-        var data = image.Encode(SKEncodedImageFormat.Webp, quality)
+        using var data = image.Encode(SKEncodedImageFormat.Webp, quality)
             ?? throw new InvalidOperationException("Failed to encode image to WebP.");
         var ms = new MemoryStream();
         data.SaveTo(ms);

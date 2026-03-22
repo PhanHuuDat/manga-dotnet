@@ -38,7 +38,7 @@ public class ChapterConfiguration : IEntityTypeConfiguration<Chapter>
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(c => new { c.MangaSeriesId, c.ChapterNumber }).IsUnique();
-        builder.HasIndex(c => c.Slug);
+        builder.HasIndex(c => new { c.MangaSeriesId, c.Slug });
         builder.HasIndex(c => c.PublishedAt).IsDescending();
     }
 }

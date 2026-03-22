@@ -1,3 +1,4 @@
+using Manga.Api.Extensions;
 using Manga.Application.Chapters.Commands.CreateChapter;
 using Manga.Application.Chapters.Commands.DeleteChapter;
 using Manga.Application.Chapters.Commands.UpdateChapter;
@@ -24,7 +25,7 @@ public static class ChapterEndpoints
         var result = await sender.Send(command);
         return result.Succeeded
             ? Results.Created($"/api/chapters/{result.Value}", result.Value)
-            : Results.BadRequest(new { errors = result.Errors });
+            : result.ToProblem();
     }
 
     private static async Task<IResult> GetChapterAsync(Guid id, ISender sender)
@@ -32,7 +33,7 @@ public static class ChapterEndpoints
         var result = await sender.Send(new GetChapterQuery(id));
         return result.Succeeded
             ? Results.Ok(result.Value)
-            : Results.NotFound(new { errors = result.Errors });
+            : result.ToProblem(404);
     }
 
     private static async Task<IResult> UpdateChapterAsync(
@@ -42,7 +43,7 @@ public static class ChapterEndpoints
         var result = await sender.Send(cmd);
         return result.Succeeded
             ? Results.NoContent()
-            : Results.BadRequest(new { errors = result.Errors });
+            : result.ToProblem();
     }
 
     private static async Task<IResult> DeleteChapterAsync(Guid id, ISender sender)
@@ -50,6 +51,6 @@ public static class ChapterEndpoints
         var result = await sender.Send(new DeleteChapterCommand(id));
         return result.Succeeded
             ? Results.NoContent()
-            : Results.NotFound(new { errors = result.Errors });
+            : result.ToProblem(404);
     }
 }

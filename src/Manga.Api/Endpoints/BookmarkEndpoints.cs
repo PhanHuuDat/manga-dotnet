@@ -1,3 +1,4 @@
+using Manga.Api.Extensions;
 using Manga.Application.Bookmarks.Commands.DeleteBookmark;
 using Manga.Application.Bookmarks.Commands.ToggleBookmark;
 using Manga.Application.Bookmarks.Queries.CheckBookmark;
@@ -26,7 +27,7 @@ public static class BookmarkEndpoints
         var result = await sender.Send(command);
         return result.Succeeded
             ? Results.Ok(result.Value)
-            : Results.BadRequest(new { errors = result.Errors });
+            : result.ToProblem();
     }
 
     private static async Task<IResult> ListAsync(
@@ -51,6 +52,6 @@ public static class BookmarkEndpoints
         var result = await sender.Send(new DeleteBookmarkCommand(id));
         return result.Succeeded
             ? Results.NoContent()
-            : Results.NotFound(new { errors = result.Errors });
+            : result.ToProblem(404);
     }
 }

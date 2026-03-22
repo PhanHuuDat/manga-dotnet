@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using Manga.Api.Extensions;
 using Manga.Application.Common.Interfaces;
 using Manga.Application.Views.Commands.TrackView;
 using Manga.Domain.Enums;
@@ -26,7 +27,7 @@ public static class ViewEndpoints
         var result = await sender.Send(command);
         return result.Succeeded
             ? Results.Ok()
-            : Results.BadRequest(new { errors = result.Errors });
+            : result.ToProblem();
     }
 
     private static string GetViewerIdentifier(

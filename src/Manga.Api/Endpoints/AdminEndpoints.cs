@@ -1,3 +1,4 @@
+using Manga.Api.Extensions;
 using Manga.Application.Admin.Commands.UpdateUserRole;
 using Manga.Application.Admin.Commands.UpdateUserStatus;
 using Manga.Application.Admin.Queries.GetAdminStats;
@@ -26,7 +27,7 @@ public static class AdminEndpoints
         var result = await sender.Send(new GetAdminStatsQuery());
         return result.Succeeded
             ? Results.Ok(result.Value)
-            : Results.BadRequest(new { errors = result.Errors });
+            : result.ToProblem();
     }
 
     private static async Task<IResult> ListUsersAsync(
@@ -36,7 +37,7 @@ public static class AdminEndpoints
         var result = await sender.Send(query);
         return result.Succeeded
             ? Results.Ok(result.Value)
-            : Results.BadRequest(new { errors = result.Errors });
+            : result.ToProblem();
     }
 
     private static async Task<IResult> UpdateUserRoleAsync(
@@ -46,7 +47,7 @@ public static class AdminEndpoints
         var result = await sender.Send(cmd);
         return result.Succeeded
             ? Results.NoContent()
-            : Results.BadRequest(new { errors = result.Errors });
+            : result.ToProblem();
     }
 
     private static async Task<IResult> UpdateUserStatusAsync(
@@ -56,7 +57,7 @@ public static class AdminEndpoints
         var result = await sender.Send(cmd);
         return result.Succeeded
             ? Results.NoContent()
-            : Results.BadRequest(new { errors = result.Errors });
+            : result.ToProblem();
     }
 
     private static async Task<IResult> ListCommentsAsync(
@@ -66,6 +67,6 @@ public static class AdminEndpoints
         var result = await sender.Send(query);
         return result.Succeeded
             ? Results.Ok(result.Value)
-            : Results.BadRequest(new { errors = result.Errors });
+            : result.ToProblem();
     }
 }

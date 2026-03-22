@@ -1,12 +1,16 @@
 using Manga.Application.Common.Interfaces;
 using Manga.Application.Common.Models;
+using Manga.Application.Common.Services;
 using Manga.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 namespace Manga.Application.Manga.Commands.CreateManga;
 
-public class CreateMangaCommandHandler(IAppDbContext db)
+public class CreateMangaCommandHandler(
+    IAppDbContext db,
+    IAttachmentValidationService attachmentValidator,
+    IGenreValidationService genreValidator)
     : IRequestHandler<CreateMangaCommand, Result<Guid>>
 {
     public async Task<Result<Guid>> Handle(CreateMangaCommand request, CancellationToken ct)
@@ -21,19 +25,15 @@ public class CreateMangaCommandHandler(IAppDbContext db)
             return Result<Guid>.Failure("Artist not found.");
 
         // Validate all genre IDs exist
-        var existingGenreCount = await db.Genres
-            .CountAsync(g => request.GenreIds.Contains(g.Id), ct);
-        if (existingGenreCount != request.GenreIds.Count)
-            return Result<Guid>.Failure("One or more genres not found.");
+        var genreResult = await genreValidator.ValidateAllExistAsync(request.GenreIds, ct);
+        if (genreResult is not null) return Result<Guid>.Failure(genreResult.Errors);
 
         // Validate attachment IDs exist
-        if (request.CoverId.HasValue &&
-            !await db.Attachments.AnyAsync(a => a.Id == request.CoverId.Value, ct))
-            return Result<Guid>.Failure("Cover attachment not found.");
+        var coverResult = await attachmentValidator.ValidateExistsAsync(request.CoverId, "Cover", ct);
+        if (coverResult is not null) return Result<Guid>.Failure(coverResult.Errors);
 
-        if (request.BannerId.HasValue &&
-            !await db.Attachments.AnyAsync(a => a.Id == request.BannerId.Value, ct))
-            return Result<Guid>.Failure("Banner attachment not found.");
+        var bannerResult = await attachmentValidator.ValidateExistsAsync(request.BannerId, "Banner", ct);
+        if (bannerResult is not null) return Result<Guid>.Failure(bannerResult.Errors);
 
         var manga = new MangaSeries
         {

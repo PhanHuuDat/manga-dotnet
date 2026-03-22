@@ -9,7 +9,9 @@ namespace Manga.Application.Manga.Commands.UpdateManga;
 
 public class UpdateMangaCommandHandler(
     IAppDbContext db,
-    IUserAuthorizationService authService)
+    IUserAuthorizationService authService,
+    IAttachmentValidationService attachmentValidator,
+    IGenreValidationService genreValidator)
     : IRequestHandler<UpdateMangaCommand, Result>
 {
     public async Task<Result> Handle(UpdateMangaCommand request, CancellationToken ct)
@@ -38,24 +40,22 @@ public class UpdateMangaCommandHandler(
         // Validate and set cover/banner attachments
         if (request.CoverId.HasValue)
         {
-            if (!await db.Attachments.AnyAsync(a => a.Id == request.CoverId.Value, ct))
-                return Result.Failure("Cover attachment not found.");
+            var coverResult = await attachmentValidator.ValidateExistsAsync(request.CoverId, "Cover", ct);
+            if (coverResult is not null) return coverResult;
             manga.CoverId = request.CoverId;
         }
         if (request.BannerId.HasValue)
         {
-            if (!await db.Attachments.AnyAsync(a => a.Id == request.BannerId.Value, ct))
-                return Result.Failure("Banner attachment not found.");
+            var bannerResult = await attachmentValidator.ValidateExistsAsync(request.BannerId, "Banner", ct);
+            if (bannerResult is not null) return bannerResult;
             manga.BannerId = request.BannerId;
         }
 
         // Replace genres if provided
         if (request.GenreIds is not null)
         {
-            var existingGenreCount = await db.Genres
-                .CountAsync(g => request.GenreIds.Contains(g.Id), ct);
-            if (existingGenreCount != request.GenreIds.Count)
-                return Result.Failure("One or more genres not found.");
+            var genreResult = await genreValidator.ValidateAllExistAsync(request.GenreIds, ct);
+            if (genreResult is not null) return genreResult;
 
             var oldGenres = await db.MangaGenres
                 .Where(mg => mg.MangaSeriesId == manga.Id)

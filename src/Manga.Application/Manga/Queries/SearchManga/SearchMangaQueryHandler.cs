@@ -21,19 +21,20 @@ public class SearchMangaQueryHandler(IAppDbContext db)
 
         var pageSize = Math.Clamp(request.PageSize, 1, MaxPageSize);
         var page = Math.Max(1, request.Page);
-        var term = request.SearchTerm.Trim().ToLower();
+        var term = request.SearchTerm.Trim();
+        var pattern = $"%{term}%";
 
-        // Case-insensitive search via ToLower (EF translates to LOWER() in SQL)
+        // Case-insensitive search via ILike (translates to PostgreSQL ILIKE, uses GIN trigram index)
         IQueryable<MangaSeries> query = db.MangaSeries
             .Where(m =>
-                m.Title.ToLower().Contains(term) ||
-                m.Author.Name.ToLower().Contains(term) ||
-                m.AlternativeTitles.Any(at => at.Title.ToLower().Contains(term)));
+                EF.Functions.ILike(m.Title, pattern) ||
+                EF.Functions.ILike(m.Author.Name, pattern) ||
+                m.AlternativeTitles.Any(at => EF.Functions.ILike(at.Title, pattern)));
 
         var totalCount = await query.CountAsync(ct);
 
         var items = await query
-            .OrderBy(m => m.Title.ToLower() == term ? 0 : 1)
+            .OrderBy(m => EF.Functions.ILike(m.Title, term) ? 0 : 1)
             .ThenByDescending(m => m.Views)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)

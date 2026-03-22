@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Manga.Api.Extensions;
 using Manga.Application.Auth.Commands.ForgotPassword;
 using Manga.Application.Auth.Commands.Login;
 using Manga.Application.Auth.Commands.Logout;
@@ -36,7 +37,7 @@ public static class AuthEndpoints
         var result = await sender.Send(command);
         return result.Succeeded
             ? Results.Created()
-            : Results.BadRequest(result.Errors);
+            : result.ToProblem();
     }
 
     private static async Task<IResult> LoginAsync(
@@ -88,7 +89,7 @@ public static class AuthEndpoints
         VerifyEmailCommand command, ISender sender)
     {
         var result = await sender.Send(command);
-        return result.Succeeded ? Results.Ok() : Results.BadRequest(result.Errors);
+        return result.Succeeded ? Results.Ok() : result.ToProblem();
     }
 
     private static async Task<IResult> ForgotPasswordAsync(
@@ -102,13 +103,13 @@ public static class AuthEndpoints
         ResetPasswordCommand command, ISender sender)
     {
         var result = await sender.Send(command);
-        return result.Succeeded ? Results.Ok() : Results.BadRequest(result.Errors);
+        return result.Succeeded ? Results.Ok() : result.ToProblem();
     }
 
     private static async Task<IResult> GetCurrentUserAsync(ISender sender)
     {
         var result = await sender.Send(new GetCurrentUserQuery());
-        return result.Succeeded ? Results.Ok(result.Value) : Results.NotFound(result.Errors);
+        return result.Succeeded ? Results.Ok(result.Value) : result.ToProblem(404);
     }
 
     private static void SetRefreshCookie(

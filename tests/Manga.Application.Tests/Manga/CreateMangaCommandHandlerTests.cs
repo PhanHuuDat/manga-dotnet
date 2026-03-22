@@ -1,12 +1,26 @@
+using Manga.Application.Common.Models;
+using Manga.Application.Common.Services;
 using Manga.Application.Manga.Commands.CreateManga;
 using Manga.Application.Tests.Auth;
 using Manga.Domain.Entities;
 using Manga.Domain.Enums;
+using NSubstitute;
 
 namespace Manga.Application.Tests.Manga;
 
 public class CreateMangaCommandHandlerTests
 {
+    private readonly IAttachmentValidationService _attachmentValidator = Substitute.For<IAttachmentValidationService>();
+    private readonly IGenreValidationService _genreValidator = Substitute.For<IGenreValidationService>();
+
+    public CreateMangaCommandHandlerTests()
+    {
+        _attachmentValidator.ValidateExistsAsync(Arg.Any<Guid?>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult((Result?)null));
+        _genreValidator.ValidateAllExistAsync(Arg.Any<ICollection<Guid>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult((Result?)null));
+    }
+
     [Fact]
     public async Task Handle_WithValidCommand_CreatesMangaAndReturnsId()
     {
@@ -17,7 +31,7 @@ public class CreateMangaCommandHandlerTests
         db.Genres.Add(genre);
         await db.SaveChangesAsync();
 
-        var handler = new CreateMangaCommandHandler(db);
+        var handler = new CreateMangaCommandHandler(db, _attachmentValidator, _genreValidator);
         var command = new CreateMangaCommand(
             "Test Manga", "Synopsis", author.Id, null,
             [genre.Id], SeriesStatus.Ongoing, 2024, null, null);
@@ -39,7 +53,7 @@ public class CreateMangaCommandHandlerTests
         db.Genres.Add(genre);
         await db.SaveChangesAsync();
 
-        var handler = new CreateMangaCommandHandler(db);
+        var handler = new CreateMangaCommandHandler(db, _attachmentValidator, _genreValidator);
         var command = new CreateMangaCommand(
             "Test Manga", null, Guid.NewGuid(), null,
             [genre.Id], SeriesStatus.Ongoing, null, null, null);
@@ -60,7 +74,7 @@ public class CreateMangaCommandHandlerTests
         db.Genres.Add(genre);
         await db.SaveChangesAsync();
 
-        var handler = new CreateMangaCommandHandler(db);
+        var handler = new CreateMangaCommandHandler(db, _attachmentValidator, _genreValidator);
         var command = new CreateMangaCommand(
             "Test Manga", null, author.Id, Guid.NewGuid(),
             [genre.Id], SeriesStatus.Ongoing, null, null, null);
@@ -79,7 +93,11 @@ public class CreateMangaCommandHandlerTests
         db.Persons.Add(author);
         await db.SaveChangesAsync();
 
-        var handler = new CreateMangaCommandHandler(db);
+        var invalidGenreValidator = Substitute.For<IGenreValidationService>();
+        invalidGenreValidator.ValidateAllExistAsync(Arg.Any<ICollection<Guid>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult((Result?)Result.Failure("genres not found")));
+
+        var handler = new CreateMangaCommandHandler(db, _attachmentValidator, invalidGenreValidator);
         var command = new CreateMangaCommand(
             "Test Manga", null, author.Id, null,
             [Guid.NewGuid()], SeriesStatus.Ongoing, null, null, null);
@@ -100,7 +118,11 @@ public class CreateMangaCommandHandlerTests
         db.Genres.Add(genre);
         await db.SaveChangesAsync();
 
-        var handler = new CreateMangaCommandHandler(db);
+        var invalidAttachmentValidator = Substitute.For<IAttachmentValidationService>();
+        invalidAttachmentValidator.ValidateExistsAsync(Arg.Any<Guid?>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult((Result?)Result.Failure("Cover attachment not found")));
+
+        var handler = new CreateMangaCommandHandler(db, invalidAttachmentValidator, _genreValidator);
         var command = new CreateMangaCommand(
             "Test Manga", null, author.Id, null,
             [genre.Id], SeriesStatus.Ongoing, null, Guid.NewGuid(), null);
@@ -122,7 +144,7 @@ public class CreateMangaCommandHandlerTests
         db.Genres.AddRange(genre1, genre2);
         await db.SaveChangesAsync();
 
-        var handler = new CreateMangaCommandHandler(db);
+        var handler = new CreateMangaCommandHandler(db, _attachmentValidator, _genreValidator);
         var command = new CreateMangaCommand(
             "Test Manga", null, author.Id, null,
             [genre1.Id, genre2.Id], SeriesStatus.Ongoing, null, null, null);
@@ -147,7 +169,7 @@ public class CreateMangaCommandHandlerTests
         db.Attachments.AddRange(cover, banner);
         await db.SaveChangesAsync();
 
-        var handler = new CreateMangaCommandHandler(db);
+        var handler = new CreateMangaCommandHandler(db, _attachmentValidator, _genreValidator);
         var command = new CreateMangaCommand(
             "Test Manga", null, author.Id, null,
             [genre.Id], SeriesStatus.Ongoing, null, cover.Id, banner.Id);

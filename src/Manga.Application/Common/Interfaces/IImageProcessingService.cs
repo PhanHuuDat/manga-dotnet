@@ -19,6 +19,8 @@ public interface IImageProcessingService
 
 /// <summary>
 /// Result of image processing containing processed and optional thumbnail streams.
+/// Caller MUST dispose this result to release stream resources.
+/// Both streams are positioned at 0 when returned.
 /// </summary>
 public record ProcessedImageResult(
     MemoryStream ProcessedStream,
@@ -29,5 +31,6 @@ public record ProcessedImageResult(
     {
         ProcessedStream.Dispose();
         ThumbnailStream?.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

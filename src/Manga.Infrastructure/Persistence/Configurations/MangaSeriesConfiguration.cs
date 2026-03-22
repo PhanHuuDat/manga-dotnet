@@ -74,6 +74,9 @@ public class MangaSeriesConfiguration : IEntityTypeConfiguration<MangaSeries>
         builder.HasIndex(m => m.CreatedAt).IsDescending();
         builder.HasIndex(m => m.AuthorId);
         builder.HasIndex(m => m.ArtistId);
+        builder.HasIndex(m => m.Title)
+            .HasMethod("gin")
+            .HasOperators("gin_trgm_ops");
 
         // Optimistic concurrency using PostgreSQL xmin system column
         builder.Property<uint>("xmin")

@@ -25,18 +25,28 @@ public class CreateCommentCommandHandler(
             !await db.Chapters.AnyAsync(c => c.Id == request.ChapterId, ct))
             return Result<Guid>.Failure("Chapter not found.");
 
-        // Validate reply depth
+        // Validate reply depth — single query loads parent + 2 ancestor levels
         if (request.ParentId.HasValue)
         {
-            var parent = await db.Comments.FirstOrDefaultAsync(c => c.Id == request.ParentId, ct);
+            var parent = await db.Comments
+                .Include(c => c.Parent)
+                    .ThenInclude(c => c!.Parent)
+                .FirstOrDefaultAsync(c => c.Id == request.ParentId, ct);
+
             if (parent is null)
                 return Result<Guid>.Failure("Parent comment not found.");
 
-            var depth = await CalculateDepthAsync(parent.Id, ct);
-            if (depth >= MaxReplyDepth)
+            // Calculate depth in-memory (0 = direct child of root)
+            var depth = 0;
+            var current = parent;
+            while (current.ParentId.HasValue && current.Parent is not null)
+            {
+                depth++;
+                current = current.Parent;
+            }
+            if (depth + 1 > MaxReplyDepth)
                 return Result<Guid>.Failure($"Maximum reply depth ({MaxReplyDepth}) reached.");
 
-            // Increment parent reply count
             parent.ReplyCount++;
         }
 
@@ -54,28 +64,5 @@ public class CreateCommentCommandHandler(
         await db.SaveChangesAsync(ct);
 
         return Result<Guid>.Success(comment.Id);
-    }
-
-    /// <summary>
-    /// Walk up the parent chain to calculate depth (0-indexed from root).
-    /// </summary>
-    private async Task<int> CalculateDepthAsync(Guid commentId, CancellationToken ct)
-    {
-        var depth = 0;
-        var currentId = (Guid?)commentId;
-
-        while (currentId.HasValue)
-        {
-            var parentId = await db.Comments
-                .Where(c => c.Id == currentId)
-                .Select(c => c.ParentId)
-                .FirstOrDefaultAsync(ct);
-
-            if (parentId.HasValue)
-                depth++;
-            currentId = parentId;
-        }
-
-        return depth;
     }
 }
